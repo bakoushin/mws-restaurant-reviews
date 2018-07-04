@@ -5,11 +5,12 @@ var map;
 var markers = [];
 
 /**
- * Fetch neighborhoods and cuisines as soon as the page is loaded.
+ * Fetch neighborhoods and cuisines, update restaurants as soon as the page is loaded.
  */
 document.addEventListener('DOMContentLoaded', () => {
   fetchNeighborhoods();
   fetchCuisines();
+  updateRestaurants();
 });
 
 /**
@@ -98,19 +99,15 @@ updateRestaurants = () => {
   const cuisine = cSelect[cIndex].value;
   const neighborhood = nSelect[nIndex].value;
 
-  DBHelper.fetchRestaurantByCuisineAndNeighborhood(
-    cuisine,
-    neighborhood,
-    (error, restaurants) => {
-      if (error) {
-        // Got an error!
-        console.error(error);
-      } else {
-        resetRestaurants(restaurants);
-        fillRestaurantsHTML();
-      }
+  DBHelper.fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, (error, restaurants) => {
+    if (error) {
+      // Got an error!
+      console.error(error);
+    } else {
+      resetRestaurants(restaurants);
+      fillRestaurantsHTML();
     }
-  );
+  });
 };
 
 /**
@@ -148,9 +145,10 @@ createRestaurantHTML = restaurant => {
   const image = document.createElement('img');
   image.className = 'restaurant-img';
   image.src = DBHelper.imageUrlForRestaurant(restaurant);
+  image.alt = restaurant.photograph_decription;
   li.append(image);
 
-  const name = document.createElement('h1');
+  const name = document.createElement('h2');
   name.innerHTML = restaurant.name;
   li.append(name);
 
@@ -158,7 +156,7 @@ createRestaurantHTML = restaurant => {
   neighborhood.innerHTML = restaurant.neighborhood;
   li.append(neighborhood);
 
-  const address = document.createElement('p');
+  const address = document.createElement('address');
   address.innerHTML = restaurant.address;
   li.append(address);
 
@@ -174,6 +172,9 @@ createRestaurantHTML = restaurant => {
  * Add markers for current restaurants to the map.
  */
 addMarkersToMap = (restaurants = self.restaurants) => {
+  if (!self.google) {
+    return; // Google Maps aren't initialized yet.
+  }
   restaurants.forEach(restaurant => {
     // Add marker to the map
     const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.map);
@@ -183,3 +184,103 @@ addMarkersToMap = (restaurants = self.restaurants) => {
     self.markers.push(marker);
   });
 };
+
+/**
+ * Service worker.
+ */
+
+serviceWorkerUpdateReady = serviceWorker => {
+  const notification = document.querySelector('.notification');
+  const updateButton = notification.querySelector('.notification__button_type_update');
+  const postponeButton = notification.querySelector('.notification__button_type_postpone');
+
+  const focusedElementBeforeNotification = document.activeElement;
+  const closeNotification = () => {
+    notification.classList.remove('notification_visible');
+    focusedElementBeforeNotification.focus();
+  };
+
+  notification.addEventListener('keydown', event => {
+    const TAB = 9;
+    const ESC = 27;
+    if (event.keyCode === TAB) {
+      if (event.shiftKey) {
+        if (document.activeElement === updateButton) {
+          event.preventDefault();
+          postponeButton.focus();
+        }
+      } else {
+        if (document.activeElement === postponeButton) {
+          event.preventDefault();
+          updateButton.focus();
+        }
+      }
+    }
+    if (event.keyCode === ESC) {
+      closeNotification();
+    }
+  });
+
+  notification.classList.add('notification_visible');
+  updateButton.focus();
+
+  updateButton.addEventListener('click', () => {
+    if (serviceWorker.state === 'installed') {
+      serviceWorker.postMessage({ action: 'skipWaiting' });
+    }
+  });
+
+  postponeButton.addEventListener('click', closeNotification);
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+};
+
+trackServiceWorkerInstalling = serviceWorker => {
+  serviceWorker.addEventListener('statechange', () => {
+    if (serviceWorker.state === 'installed') {
+      serviceWorkerUpdateReady(serviceWorker);
+    }
+  });
+};
+
+registerServiceWorker = () => {
+  if (!navigator.serviceWorker) {
+    return;
+  }
+
+  window.addEventListener('load', async () => {
+    const ONE_HOUR = 60 * 60 * 1000;
+
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js');
+
+      setInterval(() => {
+        reg.update();
+      }, ONE_HOUR);
+
+      reg.addEventListener('updatefound', () => {
+        trackServiceWorkerInstalling(reg.installing);
+      });
+
+      if (!navigator.serviceWorker.controller) {
+        return;
+      }
+
+      if (reg.installing) {
+        trackServiceWorkerInstalling(reg.installing);
+        return;
+      }
+
+      if (reg.waiting) {
+        serviceWorkerUpdateReady(reg.waiting);
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  });
+};
+
+registerServiceWorker();
