@@ -1,4 +1,4 @@
-const VERSION = 0;
+const VERSION = 1;
 const APP_PREFIX = 'restaurant-reviews';
 const STATIC_CACHE = `${APP_PREFIX}-static-v${VERSION}`;
 const IMAGES_CACHE = `${APP_PREFIX}-img`;
