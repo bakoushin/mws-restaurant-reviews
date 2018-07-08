@@ -145,7 +145,7 @@ createRestaurantHTML = restaurant => {
   const image = document.createElement('img');
   image.className = 'restaurant-img';
   image.src = DBHelper.imageUrlForRestaurant(restaurant);
-  image.alt = restaurant.photograph_decription;
+  image.alt = restaurant.name;
   li.append(image);
 
   const name = document.createElement('h2');
@@ -260,13 +260,13 @@ registerServiceWorker = () => {
         reg.update();
       }, ONE_HOUR);
 
-      reg.addEventListener('updatefound', () => {
-        trackServiceWorkerInstalling(reg.installing);
-      });
-
       if (!navigator.serviceWorker.controller) {
         return;
       }
+
+      reg.addEventListener('updatefound', () => {
+        trackServiceWorkerInstalling(reg.installing);
+      });
 
       if (reg.installing) {
         trackServiceWorkerInstalling(reg.installing);

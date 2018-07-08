@@ -48,7 +48,7 @@ fetchRestaurantFromURL = callback => {
     callback(null, self.restaurant);
     return;
   }
-  const id = getParameterByName('id');
+  const id = Number(getParameterByName('id'));
   if (!id) {
     // no id found in URL
     error = 'No restaurant id in URL';
@@ -81,7 +81,7 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   const image = document.getElementById('restaurant-img');
   image.className = 'restaurant-img';
   image.src = DBHelper.imageUrlForRestaurant(restaurant);
-  image.alt = restaurant.photograph_decription;
+  image.alt = restaurant.name;
 
   const cuisine = document.getElementById('restaurant-cuisine');
   cuisine.innerHTML = restaurant.cuisine_type;
