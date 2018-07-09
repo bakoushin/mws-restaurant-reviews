@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="theme-color" content="#252831">
   <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css">
   <link rel="stylesheet" href="css/styles.css" type="text/css">
   <title>Restaurant Info</title>
@@ -26,7 +27,9 @@
   <main id="maincontent">
     <section id="restaurant-container">
       <h2 id="restaurant-name"></h2>
-      <img id="restaurant-img">
+      <picture id="restaurant-picture">
+        <img id="restaurant-img">
+      </picture>
       <p id="restaurant-cuisine"></p>
       <address id="restaurant-address"></address>
       <table id="restaurant-hours"></table>
@@ -49,8 +52,7 @@
   <script src="https://unpkg.com/idb@2.1.3/lib/idb.js"></script>
   <script src="js/dbhelper.js"></script>
   <script src="js/restaurant_info.js"></script>
-  <!-- This is a proxy to hide Google Maps API key -->
-  <script async defer src="http://bakoush.in:19200"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBvdHH0g7-h0c1OT-azyIgm11IkSZUe3S8&callback=initMap"></script>
 
 </body>
 

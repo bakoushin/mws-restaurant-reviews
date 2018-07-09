@@ -69,7 +69,7 @@ self.addEventListener('fetch', event => {
 
 async function servePhoto(request) {
   const url = new URL(request.url);
-  const filename = url.pathname.replace('/img/', '');
+  const filename = url.pathname.replace('/img/', '').split('.')[0];
 
   const cache = await caches.open(IMAGES_CACHE);
   const cachedResponse = await cache.match(filename);

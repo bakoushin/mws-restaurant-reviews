@@ -4,6 +4,10 @@ let cuisines;
 var map;
 var markers = [];
 
+const lazyload = new LazyLoad({
+  elements_selector: '.lazy'
+});
+
 /**
  * Fetch neighborhoods and cuisines, update restaurants as soon as the page is loaded.
  */
@@ -133,6 +137,7 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
   restaurants.forEach(restaurant => {
     ul.append(createRestaurantHTML(restaurant));
   });
+  lazyload.update();
   addMarkersToMap();
 };
 
@@ -140,13 +145,35 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
  * Create restaurant HTML.
  */
 createRestaurantHTML = restaurant => {
+  const imgUrl = DBHelper.imageUrlForRestaurant(restaurant);
+  const webpSrcset = `${imgUrl}.800w.webp 800w, ${imgUrl}.600w.webp 600w, ${imgUrl}.400w.webp 400w`;
+  const jpgSrcset = `${imgUrl}.800w.jpg 800w, ${imgUrl}.600w.jpg 600w, ${imgUrl}.400w.jpg 400w`;
+  const sizes = '(min-width: 975px) 33vw, (min-width: 660px) 50vw, 100vw';
+
   const li = document.createElement('li');
 
+  const picture = document.createElement('picture');
+  li.append(picture);
+
+  const sourceWebp = document.createElement('source');
+  sourceWebp.dataset.srcset = webpSrcset;
+  sourceWebp.type = 'image/webp';
+  sourceWebp.sizes = sizes;
+  picture.append(sourceWebp);
+
+  const sourceJpg = document.createElement('source');
+  sourceJpg.dataset.srcset = jpgSrcset;
+  sourceJpg.type = 'image/jpg';
+  sourceJpg.sizes = sizes;
+  picture.append(sourceJpg);
+
   const image = document.createElement('img');
-  image.className = 'restaurant-img';
-  image.src = DBHelper.imageUrlForRestaurant(restaurant);
-  image.alt = restaurant.name;
-  li.append(image);
+  image.className = 'restaurant-img lazy';
+  image.dataset.src = `${imgUrl}.800w.jpg`;
+  image.dataset.srcset = jpgSrcset;
+  image.sizes = sizes;
+  image.alt = `Cuisine: ${restaurant.cuisine_type}`;
+  picture.append(image);
 
   const name = document.createElement('h2');
   name.innerHTML = restaurant.name;

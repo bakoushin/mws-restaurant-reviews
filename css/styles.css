@@ -125,7 +125,7 @@ nav {
 
 /* Add a color to all links inside the list */
 #breadcrumb li a {
-  color: #0275d8;
+  color: #026ac5;
   text-decoration: none;
 }
 
@@ -356,7 +356,7 @@ nav {
   position: absolute;
 }
 #restaurant-name {
-  color: #f18200;
+  color: #b35f00;
   font-family: Arial, sans-serif;
   font-size: 20pt;
   font-weight: 200;
@@ -394,7 +394,7 @@ nav {
   outline: none;
 }
 #reviews-container h2 {
-  color: #f58500;
+  color: #b35f00;
   font-size: 24pt;
   font-weight: 300;
   letter-spacing: -1px;
