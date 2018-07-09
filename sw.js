@@ -1,4 +1,4 @@
-const VERSION = 2;
+const VERSION = 3;
 const APP_PREFIX = 'restaurant-reviews';
 const STATIC_CACHE = `${APP_PREFIX}-static-v${VERSION}`;
 const IMAGES_CACHE = `${APP_PREFIX}-img`;
@@ -23,8 +23,7 @@ self.addEventListener('install', event => {
         '/js/main.js',
         '/js/restaurant_info.js',
         '/js/dbhelper.js',
-        '/restaurant.html',
-        '/data/restaurants.json'
+        '/restaurant.html'
       ]);
     })
   );
@@ -70,7 +69,7 @@ self.addEventListener('fetch', event => {
 
 async function servePhoto(request) {
   const url = new URL(request.url);
-  const filename = url.pathname.replace('/img/', '');
+  const filename = url.pathname.replace('/img/', '').split('.')[0];
 
   const cache = await caches.open(IMAGES_CACHE);
   const cachedResponse = await cache.match(filename);
