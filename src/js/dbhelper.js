@@ -1,7 +1,9 @@
+import idb from 'idb';
+
 /**
  * Common database helper functions.
  */
-class DBHelper {
+export default class DBHelper {
   /**
    * Database URL.
    */
@@ -239,7 +241,7 @@ class DBHelper {
     }
 
     if (!DBHelper._db) {
-      DBHelper._db = self.idb.open(this.DATABASE_NAME, 1, upgradeDb => {
+      DBHelper._db = idb.open(this.DATABASE_NAME, 1, upgradeDb => {
         const store = upgradeDb.createObjectStore(this.DATABASE_NAME, {
           keyPath: 'id'
         });
