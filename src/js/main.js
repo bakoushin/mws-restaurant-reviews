@@ -6,7 +6,8 @@ import './../scss/main.scss';
 let restaurants;
 let neighborhoods;
 let cuisines;
-self.map = null;
+
+var map;
 self.markers = [];
 
 const lazyload = new LazyLoad({
@@ -25,16 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * Fetch all neighborhoods and set their HTML.
  */
-const fetchNeighborhoods = () => {
-  DBHelper.fetchNeighborhoods((error, neighborhoods) => {
-    if (error) {
-      // Got an error
-      console.error(error);
-    } else {
-      self.neighborhoods = neighborhoods;
-      fillNeighborhoodsHTML();
-    }
-  });
+const fetchNeighborhoods = async () => {
+  try {
+    self.neighborhoods = await DBHelper.fetchNeighborhoods();
+  } catch (e) {
+    console.error(e);
+  }
+  fillNeighborhoodsHTML();
 };
 
 /**
@@ -53,16 +51,13 @@ const fillNeighborhoodsHTML = (neighborhoods = self.neighborhoods) => {
 /**
  * Fetch all cuisines and set their HTML.
  */
-const fetchCuisines = () => {
-  DBHelper.fetchCuisines((error, cuisines) => {
-    if (error) {
-      // Got an error!
-      console.error(error);
-    } else {
-      self.cuisines = cuisines;
-      fillCuisinesHTML();
-    }
-  });
+const fetchCuisines = async () => {
+  try {
+    self.cuisines = await DBHelper.fetchCuisines();
+  } catch (e) {
+    console.error(e);
+  }
+  fillCuisinesHTML();
 };
 
 /**
@@ -98,7 +93,7 @@ window.initMap = () => {
 /**
  * Update page and map for current restaurants.
  */
-const updateRestaurants = () => {
+const updateRestaurants = async () => {
   const cSelect = document.getElementById('cuisines-select');
   const nSelect = document.getElementById('neighborhoods-select');
 
@@ -108,15 +103,13 @@ const updateRestaurants = () => {
   const cuisine = cSelect[cIndex].value;
   const neighborhood = nSelect[nIndex].value;
 
-  DBHelper.fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, (error, restaurants) => {
-    if (error) {
-      // Got an error!
-      console.error(error);
-    } else {
-      resetRestaurants(restaurants);
-      fillRestaurantsHTML();
-    }
-  });
+  try {
+    const restaurants = await DBHelper.fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood);
+    resetRestaurants(restaurants);
+  } catch (e) {
+    console.error(e);
+  }
+  fillRestaurantsHTML();
 };
 
 /**

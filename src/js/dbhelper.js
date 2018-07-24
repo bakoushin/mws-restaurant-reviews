@@ -22,186 +22,133 @@ export default class DBHelper {
   /**
    * Fetch all restaurants using cached data from IndexedDB first.
    */
-  static fetchRestaurants(callback) {
-    DBHelper.openIndexedDB().then(db => {
-      if (!db) {
-        DBHelper.fetchRestaurantsFromNetwork(callback);
-      }
-      const store = db.transaction(DBHelper.DATABASE_NAME).objectStore(DBHelper.DATABASE_NAME);
-      store.getAll().then(restaurants => {
-        if (restaurants.length < 10) {
-          DBHelper.fetchRestaurantsFromNetwork(callback);
-        }
-        callback(null, restaurants);
-      });
-    });
+  static async fetchRestaurants() {
+    const db = await DBHelper.openIndexedDB();
+    if (!db) {
+      return DBHelper.fetchRestaurantsFromNetwork();
+    }
+    const restaurants = await db
+      .transaction(DBHelper.DATABASE_NAME)
+      .objectStore(DBHelper.DATABASE_NAME)
+      .getAll();
+    if (restaurants.length < 10) {
+      DBHelper.fetchRestaurantsFromNetwork();
+    }
+    return restaurants;
   }
 
   /**
    * Fetch all restaurants from network.
    */
-  static fetchRestaurantsFromNetwork(callback) {
-    fetch(DBHelper.DATABASE_URL)
-      .then(response => {
-        if (response.ok) {
-          return response.json().then(restaurants => {
-            DBHelper.openIndexedDB().then(db => {
-              if (!db) return;
-              const store = db.transaction(DBHelper.DATABASE_NAME, 'readwrite').objectStore(DBHelper.DATABASE_NAME);
-              for (const restaurant of restaurants) {
-                store.put(restaurant);
-              }
-            });
-            return restaurants;
-          });
-        } else {
-          callback(error, null);
+  static async fetchRestaurantsFromNetwork() {
+    const response = await fetch(DBHelper.DATABASE_URL);
+    if (response.ok) {
+      const [restaurants, db] = await Promise.all(response.json(), DBHelper.openIndexedDB());
+      if (db) {
+        const store = db.transaction(DBHelper.DATABASE_NAME, 'readwrite').objectStore(DBHelper.DATABASE_NAME);
+        for (const restaurant of restaurants) {
+          store.put(restaurant);
         }
-      })
-      .then(restaurants => {
-        callback(null, restaurants);
-      })
-      .catch(error => {
-        callback(error, null);
-      });
+      }
+      return restaurants;
+    } else {
+      throw new Error(`Failed fecthing all restaurants: ${response.status} ${response.statusText}`);
+    }
   }
 
   /**
    * Fetch a restaurant by its ID.
    */
-  static fetchRestaurantById(id, callback) {
-    DBHelper.openIndexedDB().then(db => {
-      if (!db) {
-        DBHelper.fetchRestaurantByIdFromNetwork(id, callback);
-      }
-      db.transaction(DBHelper.DATABASE_NAME)
-        .objectStore(DBHelper.DATABASE_NAME)
-        .get(id)
-        .then(restaurant => {
-          if (!restaurant) {
-            DBHelper.fetchRestaurantByIdFromNetwork(id, callback);
-          }
-          callback(null, restaurant);
-        });
-    });
+  static async fetchRestaurantById(id) {
+    const db = await DBHelper.openIndexedDB();
+    if (!db) {
+      return DBHelper.fetchRestaurantByIdFromNetwork(id);
+    }
+    const restaurant = await db
+      .transaction(DBHelper.DATABASE_NAME)
+      .objectStore(DBHelper.DATABASE_NAME)
+      .get(id);
+    if (!restaurant) {
+      return DBHelper.fetchRestaurantByIdFromNetwork(id);
+    }
+    return restaurant;
   }
 
   /**
    * Fetch a restaurant by its ID from network.
    */
-  static fetchRestaurantByIdFromNetwork(id, callback) {
-    fetch(`${DBHelper.DATABASE_URL}/${id}`)
-      .then(response => {
-        if (response.ok) {
-          return response.json().then(restaurant => {
-            DBHelper.openIndexedDB().then(db => {
-              if (!db) return;
-              const store = db.transaction(DBHelper.DATABASE_NAME, 'readwrite').objectStore(DBHelper.DATABASE_NAME);
-              store.put(restaurant);
-            });
-            return restaurant;
-          });
-        } else {
-          callback(error, null);
-        }
-      })
-      .then(restaurant => {
-        callback(null, restaurant);
-      })
-      .catch(error => {
-        callback(error, null);
-      });
+  static async fetchRestaurantByIdFromNetwork(id) {
+    const response = await fetch(`${DBHelper.DATABASE_URL}/${id}`);
+    if (response.ok) {
+      const [restaurant, db] = await Promise.all(response.json(), DBHelper.openIndexedDB());
+      if (db) {
+        db.transaction(DBHelper.DATABASE_NAME, 'readwrite')
+          .objectStore(DBHelper.DATABASE_NAME)
+          .put(restaurant);
+      }
+      return restaurant;
+    } else {
+      throw new Error(`Failed fecthing restaurant by id ${id}: ${response.status} ${response.statusText}`);
+    }
   }
 
   /**
-   * Fetch restaurants by a cuisine type with proper error handling.
+   * Fetch restaurants by a cuisine type.
    */
-  static fetchRestaurantByCuisine(cuisine, callback) {
-    // Fetch all restaurants  with proper error handling
-    DBHelper.fetchRestaurants((error, restaurants) => {
-      if (error) {
-        callback(error, null);
-      } else {
-        // Filter restaurants to have only given cuisine type
-        const results = restaurants.filter(r => r.cuisine_type == cuisine);
-        callback(null, results);
-      }
-    });
+  static async fetchRestaurantByCuisine(cuisine) {
+    const restaurants = await DBHelper.fetchRestaurants();
+    const results = restaurants.filter(r => r.cuisine_type === cuisine);
+    return results;
   }
 
   /**
-   * Fetch restaurants by a neighborhood with proper error handling.
+   * Fetch restaurants by a neighborhood.
    */
-  static fetchRestaurantByNeighborhood(neighborhood, callback) {
-    // Fetch all restaurants
-    DBHelper.fetchRestaurants((error, restaurants) => {
-      if (error) {
-        callback(error, null);
-      } else {
-        // Filter restaurants to have only given neighborhood
-        const results = restaurants.filter(r => r.neighborhood == neighborhood);
-        callback(null, results);
-      }
-    });
+  static async fetchRestaurantByNeighborhood(neighborhood) {
+    const restaurants = await DBHelper.fetchRestaurants();
+    const results = restaurants.filter(r => r.neighborhood === neighborhood);
+    return results;
   }
 
   /**
-   * Fetch restaurants by a cuisine and a neighborhood with proper error handling.
+   * Fetch restaurants by a cuisine and a neighborhood.
    */
-  static fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, callback) {
-    // Fetch all restaurants
-    DBHelper.fetchRestaurants((error, restaurants) => {
-      if (error) {
-        callback(error, null);
-      } else {
-        let results = restaurants;
-        if (cuisine != 'all') {
-          // filter by cuisine
-          results = results.filter(r => r.cuisine_type == cuisine);
-        }
-        if (neighborhood != 'all') {
-          // filter by neighborhood
-          results = results.filter(r => r.neighborhood == neighborhood);
-        }
-        callback(null, results);
-      }
-    });
+  static async fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood) {
+    const restaurants = await DBHelper.fetchRestaurants();
+    let results = restaurants;
+    // filter by cuisine
+    if (cuisine !== 'all') {
+      results = results.filter(r => r.cuisine_type === cuisine);
+    }
+    // filter by neighborhood
+    if (neighborhood !== 'all') {
+      results = results.filter(r => r.neighborhood === neighborhood);
+    }
+    return results;
   }
 
   /**
-   * Fetch all neighborhoods with proper error handling.
+   * Fetch all neighborhoods.
    */
-  static fetchNeighborhoods(callback) {
-    // Fetch all restaurants
-    DBHelper.fetchRestaurants((error, restaurants) => {
-      if (error) {
-        callback(error, null);
-      } else {
-        // Get all neighborhoods from all restaurants
-        const neighborhoods = restaurants.map((v, i) => restaurants[i].neighborhood);
-        // Remove duplicates from neighborhoods
-        const uniqueNeighborhoods = neighborhoods.filter((v, i) => neighborhoods.indexOf(v) == i);
-        callback(null, uniqueNeighborhoods);
-      }
-    });
+  static async fetchNeighborhoods() {
+    const restaurants = await DBHelper.fetchRestaurants();
+    // Get all neighborhoods from all restaurants
+    const neighborhoods = restaurants.map(r => r.neighborhood);
+    // Remove duplicates from neighborhoods
+    const uniqueNeighborhoods = neighborhoods.filter((v, i) => neighborhoods.indexOf(v) === i);
+    return uniqueNeighborhoods;
   }
 
   /**
-   * Fetch all cuisines with proper error handling.
+   * Fetch all cuisines.
    */
-  static fetchCuisines(callback) {
-    // Fetch all restaurants
-    DBHelper.fetchRestaurants((error, restaurants) => {
-      if (error) {
-        callback(error, null);
-      } else {
-        // Get all cuisines from all restaurants
-        const cuisines = restaurants.map((v, i) => restaurants[i].cuisine_type);
-        // Remove duplicates from cuisines
-        const uniqueCuisines = cuisines.filter((v, i) => cuisines.indexOf(v) == i);
-        callback(null, uniqueCuisines);
-      }
-    });
+  static async fetchCuisines() {
+    const restaurants = await DBHelper.fetchRestaurants();
+    // Get all cuisines from all restaurants
+    const cuisines = restaurants.map(r => r.cuisine_type);
+    // Remove duplicates from cuisines
+    const uniqueCuisines = cuisines.filter((v, i) => cuisines.indexOf(v) === i);
+    return uniqueCuisines;
   }
 
   /**
@@ -242,7 +189,7 @@ export default class DBHelper {
 
     if (!DBHelper._db) {
       DBHelper._db = idb.open(this.DATABASE_NAME, 1, upgradeDb => {
-        const store = upgradeDb.createObjectStore(this.DATABASE_NAME, {
+        upgradeDb.createObjectStore(this.DATABASE_NAME, {
           keyPath: 'id'
         });
       });
