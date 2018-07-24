@@ -19,10 +19,10 @@ self.addEventListener('install', event => {
     caches.open(STATIC_CACHE).then(cache => {
       return cache.addAll([
         '/',
-        '/css/styles.css',
-        '/js/main.js',
-        '/js/restaurant_info.js',
-        '/js/dbhelper.js',
+        '/main.css',
+        '/restaurant_info.css',
+        '/main.js',
+        '/restaurant_info.js',
         '/restaurant.html'
       ]);
     })

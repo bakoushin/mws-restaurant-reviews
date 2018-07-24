@@ -1,0 +1,37 @@
+.map {
+  position: relative;
+
+  &__google-map {
+    height: 400px;
+    width: 100%;
+    background-color: #ccc;
+  }
+
+  &__skip-link {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    min-width: 50%;
+    text-align: center;
+    background: #b36200;
+    color: #000;
+    padding: 0.5em;
+    font-size: 1em;
+    line-height: 1;
+    z-index: 10000;
+    will-change: opacity;
+    opacity: 0;
+    transform: translateX(-50%);
+
+    &:link,
+    &:visited,
+    &:hover,
+    &:active {
+      color: #fff;
+    }
+
+    &:focus {
+      opacity: 1;
+    }
+  }
+}

@@ -1,8 +1,10 @@
+import './../scss/restaurant.scss';
+
 let restaurant;
 var map;
 
 markRestaurantOnMap = () => {
-  self.map = new google.maps.Map(document.getElementById('map'), {
+  self.map = new google.maps.Map(document.getElementById('google-map'), {
     zoom: 16,
     center: self.restaurant.latlng,
     scrollwheel: false

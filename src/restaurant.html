@@ -6,8 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <meta name="theme-color" content="#252831">
-  <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css">
-  <link rel="stylesheet" href="css/styles.css" type="text/css">
   <title>Restaurant Info</title>
 </head>
 
@@ -34,9 +32,9 @@
       <address id="restaurant-address"></address>
       <table id="restaurant-hours"></table>
     </section>
-    <section id="map-container">
+    <section class="map">
       <a href="#reviews-container" class="map-skip-link">Skip map for reviews</a>
-      <div id="map" role="application" aria-label="Map showing resaurant location"></div>
+      <div id="google-map" class="map__google-map" role="application" aria-label="Map showing resaurant location"></div>
     </section>
     <section id="reviews-container" tabindex="-1">
       <ul id="reviews-list"></ul>
