@@ -112,6 +112,10 @@ const fillRestaurantHTML = (restaurant = self.restaurant) => {
   if (restaurant.reviews) {
     fillReviewsHTML();
   }
+  // render favorite toggle
+  if (Object.prototype.hasOwnProperty.call(restaurant, 'is_favorite')) {
+    fillFavoriteHTML();
+  }
 };
 
 /**
@@ -207,6 +211,39 @@ const fillBreadcrumb = (restaurant = self.restaurant) => {
   const li = document.createElement('li');
   li.innerHTML = restaurant.name;
   breadcrumb.appendChild(li);
+};
+
+/**
+ * Toggle favorite property.
+ */
+const toggleFavorite = async (restaurant = self.restaurant) => {
+  if (!restaurant) {
+    return;
+  }
+  const prevValue = restaurant.is_favorite;
+  restaurant.is_favorite = restaurant.is_favorite === 'true' ? 'false' : 'true';
+  fillFavoriteHTML();
+  try {
+    self.restaurant = await DBHelper.setResutaurantIsFavoriteProperty(restaurant.id, restaurant.is_favorite);
+  } catch (e) {
+    console.error(e);
+    // Restore previous value if database request fails
+    restaurant.is_favorite = prevValue;
+    fillFavoriteHTML();
+  }
+};
+
+/**
+ * Render favorite toggle.
+ */
+const fillFavoriteHTML = (restaurant = self.restaurant) => {
+  const favorite = document.getElementById('favorite');
+  favorite.innerHTML = '';
+
+  const toggleButton = document.createElement('button');
+  toggleButton.textContent = restaurant.is_favorite;
+  toggleButton.addEventListener('click', () => toggleFavorite());
+  favorite.appendChild(toggleButton);
 };
 
 /**

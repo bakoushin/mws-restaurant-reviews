@@ -141,7 +141,6 @@ export default class DBHelper {
     const response = await fetch(`${DBHelper.DATABASE_URL}/reviews/?restaurant_id=${id}`);
     if (response.ok) {
       const [reviews, db] = await Promise.all([response.json(), DBHelper.openIndexedDB()]);
-      console.table(reviews);
       if (db) {
         const store = db.transaction(DBHelper.REVIEWS_STORE_NAME, 'readwrite').objectStore(DBHelper.REVIEWS_STORE_NAME);
         for (const review of reviews) {
@@ -152,6 +151,28 @@ export default class DBHelper {
     } else {
       throw new Error(
         `Failed fecthing restaurant reviews by restaurant id ${id}: ${response.status} ${response.statusText}`
+      );
+    }
+  }
+
+  /**
+   * Set restaurant `is_favorite` property.
+   */
+  static async setResutaurantIsFavoriteProperty(id, isFavorite) {
+    const response = await fetch(`${DBHelper.DATABASE_URL}/restaurants/${id}/?is_favorite=${isFavorite}`, {
+      method: 'PUT'
+    });
+    if (response.ok) {
+      const [restaurant, db] = await Promise.all([response.json(), DBHelper.openIndexedDB()]);
+      if (db) {
+        db.transaction(DBHelper.RESTAURANTS_STORE_NAME, 'readwrite')
+          .objectStore(DBHelper.RESTAURANTS_STORE_NAME)
+          .put(restaurant);
+      }
+      return restaurant;
+    } else {
+      throw new Error(
+        `Failed setting is_favorite property for restaurant ${id}: ${response.status} ${response.statusText}`
       );
     }
   }
