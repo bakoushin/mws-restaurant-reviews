@@ -3,6 +3,8 @@ import 'normalize.css';
 import './../scss/restaurant.scss';
 
 let restaurant;
+let reviews;
+
 var map;
 
 const markRestaurantOnMap = () => {
@@ -22,6 +24,7 @@ const fetchRestaurant = async () => {
         markRestaurantOnMap();
       }
       fillBreadcrumb();
+      fetchRestaurantReviewsFromURL();
     } catch (e) {
       console.error(e);
     }
@@ -106,7 +109,9 @@ const fillRestaurantHTML = (restaurant = self.restaurant) => {
     fillRestaurantHoursHTML();
   }
   // fill reviews
-  fillReviewsHTML();
+  if (restaurant.reviews) {
+    fillReviewsHTML();
+  }
 };
 
 /**
@@ -130,6 +135,25 @@ const fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hour
 };
 
 /**
+ * Get current restaurant reviews from page URL.
+ */
+const fetchRestaurantReviewsFromURL = async () => {
+  if (self.restaurant.reviews) {
+    // reviews already fetched!
+    return self.restaurant.reviews;
+  }
+  const id = Number(getParameterByName('id'));
+  if (!id) {
+    // no id found in URL
+    throw new Error('No restaurant id in URL');
+  } else {
+    const reviews = await DBHelper.fetchRestaurantReviewsById(id);
+    self.restaurant.reviews = reviews;
+    fillReviewsHTML();
+  }
+};
+
+/**
  * Create all reviews HTML and add them to the webpage.
  */
 const fillReviewsHTML = (reviews = self.restaurant.reviews) => {
@@ -138,7 +162,7 @@ const fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   title.innerHTML = 'Reviews';
   container.appendChild(title);
 
-  if (!reviews) {
+  if (!reviews || reviews.length === 0) {
     const noReviews = document.createElement('p');
     noReviews.innerHTML = 'No reviews yet!';
     container.appendChild(noReviews);
@@ -161,7 +185,7 @@ const createReviewHTML = review => {
   li.appendChild(name);
 
   const date = document.createElement('p');
-  date.innerHTML = review.date;
+  date.innerHTML = new Date(review.createdAt).toLocaleDateString();
   li.appendChild(date);
 
   const rating = document.createElement('p');

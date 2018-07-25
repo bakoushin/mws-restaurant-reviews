@@ -9,7 +9,7 @@ export default class DBHelper {
    */
   static get DATABASE_URL() {
     const port = 1337;
-    return `http://localhost:${port}/restaurants`;
+    return `http://localhost:${port}`;
   }
 
   /**
@@ -17,6 +17,27 @@ export default class DBHelper {
    */
   static get DATABASE_NAME() {
     return 'restaurant-reviews';
+  }
+
+  /**
+   * Restaurants store name.
+   */
+  static get RESTAURANTS_STORE_NAME() {
+    return 'restaurants';
+  }
+
+  /**
+   * Restaurant reviews store name.
+   */
+  static get REVIEWS_STORE_NAME() {
+    return 'reviews';
+  }
+
+  /**
+   * Restaurant reviews store name.
+   */
+  static get REVIEWS_STORE_INDEX() {
+    return 'restaurant_id';
   }
 
   /**
@@ -28,11 +49,11 @@ export default class DBHelper {
       return DBHelper.fetchRestaurantsFromNetwork();
     }
     const restaurants = await db
-      .transaction(DBHelper.DATABASE_NAME)
-      .objectStore(DBHelper.DATABASE_NAME)
+      .transaction(DBHelper.RESTAURANTS_STORE_NAME)
+      .objectStore(DBHelper.RESTAURANTS_STORE_NAME)
       .getAll();
     if (restaurants.length < 10) {
-      DBHelper.fetchRestaurantsFromNetwork();
+      return DBHelper.fetchRestaurantsFromNetwork();
     }
     return restaurants;
   }
@@ -41,11 +62,13 @@ export default class DBHelper {
    * Fetch all restaurants from network.
    */
   static async fetchRestaurantsFromNetwork() {
-    const response = await fetch(DBHelper.DATABASE_URL);
+    const response = await fetch(`${DBHelper.DATABASE_URL}/restaurants`);
     if (response.ok) {
-      const [restaurants, db] = await Promise.all(response.json(), DBHelper.openIndexedDB());
+      const [restaurants, db] = await Promise.all([response.json(), DBHelper.openIndexedDB()]);
       if (db) {
-        const store = db.transaction(DBHelper.DATABASE_NAME, 'readwrite').objectStore(DBHelper.DATABASE_NAME);
+        const store = db
+          .transaction(DBHelper.RESTAURANTS_STORE_NAME, 'readwrite')
+          .objectStore(DBHelper.RESTAURANTS_STORE_NAME);
         for (const restaurant of restaurants) {
           store.put(restaurant);
         }
@@ -65,8 +88,8 @@ export default class DBHelper {
       return DBHelper.fetchRestaurantByIdFromNetwork(id);
     }
     const restaurant = await db
-      .transaction(DBHelper.DATABASE_NAME)
-      .objectStore(DBHelper.DATABASE_NAME)
+      .transaction(DBHelper.RESTAURANTS_STORE_NAME)
+      .objectStore(DBHelper.RESTAURANTS_STORE_NAME)
       .get(id);
     if (!restaurant) {
       return DBHelper.fetchRestaurantByIdFromNetwork(id);
@@ -78,17 +101,58 @@ export default class DBHelper {
    * Fetch a restaurant by its ID from network.
    */
   static async fetchRestaurantByIdFromNetwork(id) {
-    const response = await fetch(`${DBHelper.DATABASE_URL}/${id}`);
+    const response = await fetch(`${DBHelper.DATABASE_URL}/restaurants/${id}`);
     if (response.ok) {
-      const [restaurant, db] = await Promise.all(response.json(), DBHelper.openIndexedDB());
+      const [restaurant, db] = await Promise.all([response.json(), DBHelper.openIndexedDB()]);
       if (db) {
-        db.transaction(DBHelper.DATABASE_NAME, 'readwrite')
-          .objectStore(DBHelper.DATABASE_NAME)
+        db.transaction(DBHelper.RESTAURANTS_STORE_NAME, 'readwrite')
+          .objectStore(DBHelper.RESTAURANTS_STORE_NAME)
           .put(restaurant);
       }
       return restaurant;
     } else {
       throw new Error(`Failed fecthing restaurant by id ${id}: ${response.status} ${response.statusText}`);
+    }
+  }
+
+  /**
+   * Fetch a restaurant reviews by its ID.
+   */
+  static async fetchRestaurantReviewsById(id) {
+    const db = await DBHelper.openIndexedDB();
+    if (!db) {
+      return DBHelper.fetchRestaurantReviewsByIdFromNetwork(id);
+    }
+    const reviews = await db
+      .transaction(DBHelper.REVIEWS_STORE_NAME)
+      .objectStore(DBHelper.REVIEWS_STORE_NAME)
+      .index(DBHelper.REVIEWS_STORE_INDEX)
+      .getAll(IDBKeyRange.only(id));
+    if (!reviews || reviews.length === 0) {
+      return DBHelper.fetchRestaurantReviewsByIdFromNetwork(id);
+    }
+    return reviews;
+  }
+
+  /**
+   * Fetch a restaurant reviews by its ID from network.
+   */
+  static async fetchRestaurantReviewsByIdFromNetwork(id) {
+    const response = await fetch(`${DBHelper.DATABASE_URL}/reviews/?restaurant_id=${id}`);
+    if (response.ok) {
+      const [reviews, db] = await Promise.all([response.json(), DBHelper.openIndexedDB()]);
+      console.table(reviews);
+      if (db) {
+        const store = db.transaction(DBHelper.REVIEWS_STORE_NAME, 'readwrite').objectStore(DBHelper.REVIEWS_STORE_NAME);
+        for (const review of reviews) {
+          store.put(review);
+        }
+      }
+      return reviews;
+    } else {
+      throw new Error(
+        `Failed fecthing restaurant reviews by restaurant id ${id}: ${response.status} ${response.statusText}`
+      );
     }
   }
 
@@ -188,10 +252,22 @@ export default class DBHelper {
     }
 
     if (!DBHelper._db) {
-      DBHelper._db = idb.open(this.DATABASE_NAME, 1, upgradeDb => {
-        upgradeDb.createObjectStore(this.DATABASE_NAME, {
-          keyPath: 'id'
-        });
+      DBHelper._db = idb.open(DBHelper.DATABASE_NAME, 2, upgradeDb => {
+        switch (upgradeDb.oldVersion) {
+          case 0:
+            upgradeDb.createObjectStore(DBHelper.DATABASE_NAME, {
+              keyPath: 'id'
+            });
+          case 1:
+            // Update initial restaurants store name
+            const restaurantsStore = upgradeDb.transaction.objectStore(DBHelper.DATABASE_NAME);
+            restaurantsStore.name = DBHelper.RESTAURANTS_STORE_NAME;
+            // Create new object store for reviews
+            const reviewsStore = upgradeDb.createObjectStore(DBHelper.REVIEWS_STORE_NAME, {
+              keyPath: 'id'
+            });
+            reviewsStore.createIndex(DBHelper.REVIEWS_STORE_INDEX, DBHelper.REVIEWS_STORE_INDEX);
+        }
       });
     }
 
