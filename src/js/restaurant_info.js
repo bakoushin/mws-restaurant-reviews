@@ -223,13 +223,24 @@ const toggleFavorite = async (restaurant = self.restaurant) => {
   const prevValue = restaurant.is_favorite;
   restaurant.is_favorite = restaurant.is_favorite === 'true' ? 'false' : 'true';
   fillFavoriteHTML();
-  try {
-    self.restaurant = await DBHelper.setResutaurantIsFavoriteProperty(restaurant.id, restaurant.is_favorite);
-  } catch (e) {
-    console.error(e);
-    // Restore previous value if database request fails
-    restaurant.is_favorite = prevValue;
-    fillFavoriteHTML();
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    const registration = await navigator.serviceWorker.ready;
+    await DBHelper.addFavoriteToOutbox(restaurant.id, restaurant.is_favorite);
+    try {
+      await registration.sync.register('update-favorites');
+    } catch (e) {
+      console.error(e);
+      // postDataFromThePage();
+    }
+  } else {
+    try {
+      self.restaurant = await DBHelper.setResutaurantIsFavoriteProperty(restaurant.id, restaurant.is_favorite);
+    } catch (e) {
+      console.error(e);
+      // Restore previous value if database request fails
+      restaurant.is_favorite = prevValue;
+      fillFavoriteHTML();
+    }
   }
 };
 

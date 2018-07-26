@@ -1,3 +1,5 @@
+import DBHelper from './dbhelper';
+
 const VERSION = 3;
 const APP_PREFIX = 'restaurant-reviews';
 const STATIC_CACHE = `${APP_PREFIX}-static-v${VERSION}`;
@@ -19,11 +21,11 @@ self.addEventListener('install', event => {
     caches.open(STATIC_CACHE).then(cache => {
       return cache.addAll([
         '/',
-        '/main.css',
-        '/restaurant_info.css',
+        //'/main.css',
         '/main.js',
-        '/restaurant_info.js',
-        '/restaurant.html'
+        '/restaurant.html',
+        // '/restaurant_info.css',
+        '/restaurant_info.js'
       ]);
     })
   );
@@ -62,6 +64,58 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
+self.addEventListener('sync', event => {
+  if (event.tag === 'update-favorites') {
+    event.waitUntil(
+      updateFavorites()
+      // getMessagesFromOutbox()
+      // .then(restaurants => {
+      //   const requests = restaurants.map(r => DBHelper.setResutaurantIsFavoriteProperty(r.id, r.isFavorite));
+
+      //   // Post the messages to the server
+      //   return Promise.all(requests)
+      //   .then(() => {
+      //     // Success! Remove them from the outbox
+      //     return removeMessagesFromOutbox(messages);
+      //   });
+      // })
+      // .catch(err => {
+      //   if (event.lastChance) {
+      //     self.registration.showNotification("Important thing failed");
+      //   }
+      //   throw err;
+      // })
+      // .then(() => {
+      //   // Tell pages of your success so they can update UI
+      //   return clients.matchAll({ includeUncontrolled: true });
+      // })
+      // .then(clients => {
+      //   clients.forEach(client => client.postMessage('outbox-processed'))
+      // })
+    );
+  } else {
+    event.registration.unregister();
+  }
+});
+
+async function updateFavorites() {
+  let restaurant;
+  while ((restaurant = await DBHelper.getFavoriteFromOutbox())) {
+    try {
+      await DBHelper.setResutaurantIsFavoriteProperty(restaurant.id, restaurant.isFavorite);
+    } catch (e) {
+      console.error(e);
+      //   if (event.lastChance) {
+      //     self.registration.showNotification("Important thing failed");
+      //   }
+      throw e;
+    }
+    await DBHelper.deleteFavoriteFromOutbox(restaurant.id);
+    const clients = await self.clients.matchAll({ includeUncontrolled: true });
+    clients.forEach(c => c.postMessage('favorites-updated'));
+  }
+}
 
 /**
  * Helper functions.

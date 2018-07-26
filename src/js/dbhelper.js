@@ -41,6 +41,13 @@ export default class DBHelper {
   }
 
   /**
+   * Favorites background sync outbox store name.
+   */
+  static get FAVORITES_OUTBOX_STORE_NAME() {
+    return 'favorites-outbox';
+  }
+
+  /**
    * Fetch all restaurants using cached data from IndexedDB first.
    */
   static async fetchRestaurants() {
@@ -178,6 +185,39 @@ export default class DBHelper {
   }
 
   /**
+   * Add favorite restaurant to outbox for background sync.
+   */
+  static async addFavoriteToOutbox(id, isFavorite) {
+    const db = await DBHelper.openIndexedDB();
+    return db
+      .transaction(DBHelper.FAVORITES_OUTBOX_STORE_NAME, 'readwrite')
+      .objectStore(DBHelper.FAVORITES_OUTBOX_STORE_NAME)
+      .put({ id, isFavorite });
+  }
+
+  /**
+   * Get next favorite restaurant from outbox.
+   */
+  static async getFavoriteFromOutbox() {
+    const db = await DBHelper.openIndexedDB();
+    return db
+      .transaction(DBHelper.FAVORITES_OUTBOX_STORE_NAME, 'readonly')
+      .objectStore(DBHelper.FAVORITES_OUTBOX_STORE_NAME)
+      .get(IDBKeyRange.lowerBound(0));
+  }
+
+  /**
+   * Remove favorite restaurant from outbox.
+   */
+  static async deleteFavoriteFromOutbox(id) {
+    const db = await DBHelper.openIndexedDB();
+    return db
+      .transaction(DBHelper.FAVORITES_OUTBOX_STORE_NAME, 'readwrite')
+      .objectStore(DBHelper.FAVORITES_OUTBOX_STORE_NAME)
+      .delete(id);
+  }
+
+  /**
    * Fetch restaurants by a cuisine type.
    */
   static async fetchRestaurantByCuisine(cuisine) {
@@ -268,9 +308,10 @@ export default class DBHelper {
    * Open IndexedDB.
    */
   static openIndexedDB() {
-    if (!navigator.serviceWorker) {
-      return Promise.resolve();
-    }
+    // TODO: fix it to work in SW and main window
+    // if (!('serviceWorker' in navigator)) {
+    //   return Promise.resolve();
+    // }
 
     if (!DBHelper._db) {
       DBHelper._db = idb.open(DBHelper.DATABASE_NAME, 2, upgradeDb => {
@@ -283,11 +324,18 @@ export default class DBHelper {
             // Update initial restaurants store name
             const restaurantsStore = upgradeDb.transaction.objectStore(DBHelper.DATABASE_NAME);
             restaurantsStore.name = DBHelper.RESTAURANTS_STORE_NAME;
+
             // Create new object store for reviews
             const reviewsStore = upgradeDb.createObjectStore(DBHelper.REVIEWS_STORE_NAME, {
               keyPath: 'id'
             });
             reviewsStore.createIndex(DBHelper.REVIEWS_STORE_INDEX, DBHelper.REVIEWS_STORE_INDEX);
+
+            // Create new object store for favorites background sync outbox
+            upgradeDb.createObjectStore(DBHelper.FAVORITES_OUTBOX_STORE_NAME, {
+              keyPath: 'id',
+              autoIncrement: true
+            });
         }
       });
     }
