@@ -94,12 +94,20 @@ export default class DBHelper {
     if (!db) {
       return DBHelper.fetchRestaurantByIdFromNetwork(id);
     }
-    const restaurant = await db
+    let restaurant = await db
       .transaction(DBHelper.RESTAURANTS_STORE_NAME)
       .objectStore(DBHelper.RESTAURANTS_STORE_NAME)
       .get(id);
     if (!restaurant) {
-      return DBHelper.fetchRestaurantByIdFromNetwork(id);
+      restaurant = DBHelper.fetchRestaurantByIdFromNetwork(id);
+    }
+    const pendingFavorite = await DBHelper.getFavoriteFromOutboxById(id);
+    if (pendingFavorite) {
+      restaurant = {
+        ...restaurant,
+        is_favorite: pendingFavorite.isFavorite,
+        is_favorite_updating: true
+      };
     }
     return restaurant;
   }
@@ -196,9 +204,20 @@ export default class DBHelper {
   }
 
   /**
+   * Get favorite restaurant state from outbox by restaurant id.
+   */
+  static async getFavoriteFromOutboxById(id) {
+    const db = await DBHelper.openIndexedDB();
+    return db
+      .transaction(DBHelper.FAVORITES_OUTBOX_STORE_NAME, 'readonly')
+      .objectStore(DBHelper.FAVORITES_OUTBOX_STORE_NAME)
+      .get(id);
+  }
+
+  /**
    * Get next favorite restaurant from outbox.
    */
-  static async getFavoriteFromOutbox() {
+  static async getNextFavoriteFromOutbox() {
     const db = await DBHelper.openIndexedDB();
     return db
       .transaction(DBHelper.FAVORITES_OUTBOX_STORE_NAME, 'readonly')
@@ -308,38 +327,37 @@ export default class DBHelper {
    * Open IndexedDB.
    */
   static openIndexedDB() {
-    // TODO: fix it to work in SW and main window
-    // if (!('serviceWorker' in navigator)) {
-    //   return Promise.resolve();
-    // }
+    try {
+      if (!DBHelper._db) {
+        DBHelper._db = idb.open(DBHelper.DATABASE_NAME, 2, upgradeDb => {
+          switch (upgradeDb.oldVersion) {
+            case 0:
+              upgradeDb.createObjectStore(DBHelper.DATABASE_NAME, {
+                keyPath: 'id'
+              });
+            case 1:
+              // Update initial restaurants store name
+              const restaurantsStore = upgradeDb.transaction.objectStore(DBHelper.DATABASE_NAME);
+              restaurantsStore.name = DBHelper.RESTAURANTS_STORE_NAME;
 
-    if (!DBHelper._db) {
-      DBHelper._db = idb.open(DBHelper.DATABASE_NAME, 2, upgradeDb => {
-        switch (upgradeDb.oldVersion) {
-          case 0:
-            upgradeDb.createObjectStore(DBHelper.DATABASE_NAME, {
-              keyPath: 'id'
-            });
-          case 1:
-            // Update initial restaurants store name
-            const restaurantsStore = upgradeDb.transaction.objectStore(DBHelper.DATABASE_NAME);
-            restaurantsStore.name = DBHelper.RESTAURANTS_STORE_NAME;
+              // Create new object store for reviews
+              const reviewsStore = upgradeDb.createObjectStore(DBHelper.REVIEWS_STORE_NAME, {
+                keyPath: 'id'
+              });
+              reviewsStore.createIndex(DBHelper.REVIEWS_STORE_INDEX, DBHelper.REVIEWS_STORE_INDEX);
 
-            // Create new object store for reviews
-            const reviewsStore = upgradeDb.createObjectStore(DBHelper.REVIEWS_STORE_NAME, {
-              keyPath: 'id'
-            });
-            reviewsStore.createIndex(DBHelper.REVIEWS_STORE_INDEX, DBHelper.REVIEWS_STORE_INDEX);
-
-            // Create new object store for favorites background sync outbox
-            upgradeDb.createObjectStore(DBHelper.FAVORITES_OUTBOX_STORE_NAME, {
-              keyPath: 'id',
-              autoIncrement: true
-            });
-        }
-      });
+              // Create new object store for favorites background sync outbox
+              upgradeDb.createObjectStore(DBHelper.FAVORITES_OUTBOX_STORE_NAME, {
+                keyPath: 'id',
+                autoIncrement: true
+              });
+          }
+        });
+      }
+      return DBHelper._db;
+    } catch (e) {
+      console.error(e);
+      return Promise.resolve();
     }
-
-    return DBHelper._db;
   }
 }

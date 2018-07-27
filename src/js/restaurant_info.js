@@ -33,6 +33,18 @@ const fetchRestaurant = async () => {
 
 document.addEventListener('DOMContentLoaded', fetchRestaurant);
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', async ({ data }) => {
+    if (data.action === 'favorites-updated') {
+      const isFavoriteUpdating = await DBHelper.getFavoriteFromOutboxById(data.id);
+      if (!isFavoriteUpdating) {
+        self.restaurant.is_favorite_updating = false;
+      }
+      fillFavoriteHTML();
+    }
+  });
+}
+
 /**
  * Initialize Google map, called from HTML.
  */
@@ -222,6 +234,7 @@ const toggleFavorite = async (restaurant = self.restaurant) => {
   }
   const prevValue = restaurant.is_favorite;
   restaurant.is_favorite = restaurant.is_favorite === 'true' ? 'false' : 'true';
+  restaurant.is_favorite_updating = true;
   fillFavoriteHTML();
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
     const registration = await navigator.serviceWorker.ready;
@@ -230,17 +243,22 @@ const toggleFavorite = async (restaurant = self.restaurant) => {
       await registration.sync.register('update-favorites');
     } catch (e) {
       console.error(e);
-      // postDataFromThePage();
-    }
-  } else {
-    try {
-      self.restaurant = await DBHelper.setResutaurantIsFavoriteProperty(restaurant.id, restaurant.is_favorite);
-    } catch (e) {
-      console.error(e);
-      // Restore previous value if database request fails
-      restaurant.is_favorite = prevValue;
+      await toggleFavoriteDirectly(restaurant.id, restaurant.is_favorite, prevValue);
       fillFavoriteHTML();
     }
+  } else {
+    await toggleFavoriteDirectly(restaurant.id, restaurant.is_favorite, prevValue);
+    fillFavoriteHTML();
+  }
+};
+
+const toggleFavoriteDirectly = async (id, isFavorite, prevValue) => {
+  try {
+    self.restaurant = await DBHelper.setResutaurantIsFavoriteProperty(id, isFavorite);
+  } catch (e) {
+    console.error(e);
+    restaurant.is_favorite = prevValue;
+    restaurant.is_favorite_updating = false;
   }
 };
 
@@ -255,6 +273,12 @@ const fillFavoriteHTML = (restaurant = self.restaurant) => {
   toggleButton.textContent = restaurant.is_favorite;
   toggleButton.addEventListener('click', () => toggleFavorite());
   favorite.appendChild(toggleButton);
+
+  if (restaurant.is_favorite_updating) {
+    const updatingStatus = document.createElement('span');
+    updatingStatus.textContent = 'Updating...';
+    favorite.appendChild(updatingStatus);
+  }
 };
 
 /**

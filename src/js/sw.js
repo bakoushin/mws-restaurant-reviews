@@ -101,19 +101,21 @@ self.addEventListener('sync', event => {
 
 async function updateFavorites() {
   let restaurant;
-  while ((restaurant = await DBHelper.getFavoriteFromOutbox())) {
+  while ((restaurant = await DBHelper.getNextFavoriteFromOutbox())) {
     try {
       await DBHelper.setResutaurantIsFavoriteProperty(restaurant.id, restaurant.isFavorite);
     } catch (e) {
       console.error(e);
-      //   if (event.lastChance) {
-      //     self.registration.showNotification("Important thing failed");
-      //   }
       throw e;
     }
     await DBHelper.deleteFavoriteFromOutbox(restaurant.id);
     const clients = await self.clients.matchAll({ includeUncontrolled: true });
-    clients.forEach(c => c.postMessage('favorites-updated'));
+    clients.forEach(c =>
+      c.postMessage({
+        action: 'favorites-updated',
+        id: restaurant.id
+      })
+    );
   }
 }
 
