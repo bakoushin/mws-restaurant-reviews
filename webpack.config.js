@@ -2,6 +2,7 @@ const path = require('path');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const ServiceWorkerWebpackPlugin = require('serviceworker-webpack-plugin');
 const HtmlWebpackInlineSourcePlugin = require('html-webpack-inline-source-plugin');
 
 module.exports = (env, argv) => {
@@ -22,12 +23,11 @@ module.exports = (env, argv) => {
       restaurant_info: './js/restaurant_info.js'
     },
     output: {
-      path: path.resolve(__dirname, 'dist')
-      //filename: '[name].[chunkhash].js'
+      path: path.resolve(__dirname, 'dist'),
+      filename: devMode ? '[name].js' : '[name].[contenthash].js'
     },
     devtool: devMode ? 'cheap-module-eval-source-map' : false,
     devServer: {
-      //stats: 'errors-only',
       compress: true
     },
     module: {
@@ -72,7 +72,9 @@ module.exports = (env, argv) => {
       new CleanWebpackPlugin(['dist'], {
         beforeEmit: true
       }),
-      new MiniCssExtractPlugin(),
+      new MiniCssExtractPlugin({
+        filename: '[name].[contenthash].css'
+      }),
       new HtmlWebpackPlugin({
         filename: 'index.html',
         template: './index.html',
@@ -86,8 +88,11 @@ module.exports = (env, argv) => {
         chunks: ['restaurant_info'],
         minify: devMode ? false : htmlMinifierOptions
         // inlineSource: '.(js|css)$'
-      })
+      }),
       //new HtmlWebpackInlineSourcePlugin()
+      new ServiceWorkerWebpackPlugin({
+        entry: path.join(__dirname, 'src/js/sw.js')
+      })
     ]
   };
 };

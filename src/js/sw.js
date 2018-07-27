@@ -17,16 +17,10 @@ self.addEventListener('message', event => {
 });
 
 self.addEventListener('install', event => {
+  const assets = ['/', '/main.css', '/main.js', '/restaurant.html', '/restaurant_info.css', '/restaurant_info.js'];
   event.waitUntil(
     caches.open(STATIC_CACHE).then(cache => {
-      return cache.addAll([
-        '/',
-        //'/main.css',
-        '/main.js',
-        '/restaurant.html',
-        // '/restaurant_info.css',
-        '/restaurant_info.js'
-      ]);
+      return cache.addAll(serviceWorkerOption ? serviceWorkerOption.assets : assets);
     })
   );
 });
