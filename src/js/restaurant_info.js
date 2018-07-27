@@ -36,10 +36,9 @@ document.addEventListener('DOMContentLoaded', fetchRestaurant);
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', async ({ data }) => {
     if (data.action === 'favorites-updated') {
-      const isFavoriteUpdating = await DBHelper.getFavoriteFromOutboxById(data.id);
-      if (!isFavoriteUpdating) {
-        self.restaurantFavoriteIsUpdating = false;
-      }
+      const { id } = data;
+      self.restaurant = await DBHelper.fetchRestaurantById(id);
+      self.restaurantFavoriteIsUpdating = Boolean(await DBHelper.getFavoriteFromOutboxById(id));
       fillFavoriteHTML();
     }
   });
@@ -71,15 +70,11 @@ const fetchRestaurantFromURL = async () => {
   } else {
     self.resaurantIsFetching = true;
     const restaurant = await DBHelper.fetchRestaurantById(id);
-
-    const pendingFavorite = await DBHelper.getFavoriteFromOutboxById(id);
-    if (pendingFavorite) {
-      restaurant.is_favorite = pendingFavorite.isFavorite;
-      self.restaurantFavoriteIsUpdating = true;
-    }
-
     self.resaurantIsFetching = false;
     self.restaurant = restaurant;
+
+    self.restaurantFavoriteIsUpdating = Boolean(await DBHelper.getFavoriteFromOutboxById(id));
+
     fillRestaurantHTML();
   }
 };
@@ -239,34 +234,31 @@ const toggleFavorite = async (restaurant = self.restaurant) => {
   if (!restaurant) {
     return;
   }
-  const prevValue = restaurant.is_favorite;
-  restaurant.is_favorite = restaurant.is_favorite === 'true' ? 'false' : 'true';
   self.restaurantFavoriteIsUpdating = true;
   fillFavoriteHTML();
+  const newFavoriteState = restaurant.is_favorite === 'true' ? 'false' : 'true';
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
     const registration = await navigator.serviceWorker.ready;
-    await DBHelper.addFavoriteToOutbox(restaurant.id, restaurant.is_favorite);
+    await DBHelper.addFavoriteToOutbox(restaurant.id, newFavoriteState);
     try {
       await registration.sync.register('update-favorites');
     } catch (e) {
       console.error(e);
-      await toggleFavoriteDirectly(restaurant.id, restaurant.is_favorite, prevValue);
-      fillFavoriteHTML();
+      toggleFavoriteDirectly(newFavoriteState);
     }
   } else {
-    await toggleFavoriteDirectly(restaurant.id, restaurant.is_favorite, prevValue);
-    fillFavoriteHTML();
+    toggleFavoriteDirectly(newFavoriteState);
   }
 };
 
-const toggleFavoriteDirectly = async (id, isFavorite, prevValue) => {
+const toggleFavoriteDirectly = async newFavoriteState => {
   try {
-    self.restaurant = await DBHelper.setResutaurantIsFavoriteProperty(id, isFavorite);
+    self.restaurant = await DBHelper.setResutaurantIsFavoriteProperty(self.restaurant.id, newFavoriteState);
   } catch (e) {
     console.error(e);
-    restaurant.is_favorite = prevValue;
-    self.restaurantFavoriteIsUpdating = false;
   }
+  self.restaurantFavoriteIsUpdating = false;
+  fillFavoriteHTML();
 };
 
 /**
@@ -276,15 +268,15 @@ const fillFavoriteHTML = (restaurant = self.restaurant) => {
   const favorite = document.getElementById('favorite');
   favorite.innerHTML = '';
 
-  const toggleButton = document.createElement('button');
-  toggleButton.textContent = restaurant.is_favorite;
-  toggleButton.addEventListener('click', () => toggleFavorite());
-  favorite.appendChild(toggleButton);
-
   if (self.restaurantFavoriteIsUpdating) {
     const updatingStatus = document.createElement('span');
     updatingStatus.textContent = 'Updating...';
     favorite.appendChild(updatingStatus);
+  } else {
+    const toggleButton = document.createElement('button');
+    toggleButton.textContent = restaurant.is_favorite;
+    toggleButton.addEventListener('click', () => toggleFavorite());
+    favorite.appendChild(toggleButton);
   }
 };
 
