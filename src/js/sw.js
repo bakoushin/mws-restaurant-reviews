@@ -61,33 +61,7 @@ self.addEventListener('fetch', event => {
 
 self.addEventListener('sync', event => {
   if (event.tag === 'update-favorites') {
-    event.waitUntil(
-      updateFavorites()
-      // getMessagesFromOutbox()
-      // .then(restaurants => {
-      //   const requests = restaurants.map(r => DBHelper.setResutaurantIsFavoriteProperty(r.id, r.isFavorite));
-
-      //   // Post the messages to the server
-      //   return Promise.all(requests)
-      //   .then(() => {
-      //     // Success! Remove them from the outbox
-      //     return removeMessagesFromOutbox(messages);
-      //   });
-      // })
-      // .catch(err => {
-      //   if (event.lastChance) {
-      //     self.registration.showNotification("Important thing failed");
-      //   }
-      //   throw err;
-      // })
-      // .then(() => {
-      //   // Tell pages of your success so they can update UI
-      //   return clients.matchAll({ includeUncontrolled: true });
-      // })
-      // .then(clients => {
-      //   clients.forEach(client => client.postMessage('outbox-processed'))
-      // })
-    );
+    event.waitUntil(updateFavorites());
   } else {
     event.registration.unregister();
   }
