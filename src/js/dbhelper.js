@@ -99,15 +99,7 @@ export default class DBHelper {
       .objectStore(DBHelper.RESTAURANTS_STORE_NAME)
       .get(id);
     if (!restaurant) {
-      restaurant = DBHelper.fetchRestaurantByIdFromNetwork(id);
-    }
-    const pendingFavorite = await DBHelper.getFavoriteFromOutboxById(id);
-    if (pendingFavorite) {
-      restaurant = {
-        ...restaurant,
-        is_favorite: pendingFavorite.isFavorite,
-        is_favorite_updating: true
-      };
+      return DBHelper.fetchRestaurantByIdFromNetwork(id);
     }
     return restaurant;
   }
