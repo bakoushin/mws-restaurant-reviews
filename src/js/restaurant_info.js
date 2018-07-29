@@ -7,6 +7,9 @@ let reviews;
 
 var map;
 
+const favoriteButton = document.querySelector('.restaurant-favorite-button');
+const favoriteIcon = document.querySelector('.restaurant-favorite-icon');
+
 const markRestaurantOnMap = () => {
   self.map = new google.maps.Map(document.getElementById('google-map'), {
     zoom: 16,
@@ -39,10 +42,32 @@ if ('serviceWorker' in navigator) {
       const { id } = data;
       self.restaurant = await DBHelper.fetchRestaurantById(id);
       self.restaurantFavoriteIsUpdating = Boolean(await DBHelper.getFavoriteFromOutboxById(id));
+      if (self.restaurantFavoriteStartedUpdate) {
+        self.restaurantFavoriteStartedUpdate = self.restaurantFavoriteIsUpdating;
+      }
       fillFavoriteHTML();
     }
   });
 }
+
+favoriteButton.addEventListener('mousedown', () => {
+  favoriteButton.classList.add('outline-hidden');
+});
+
+favoriteButton.addEventListener('keydown', () => {
+  favoriteButton.classList.remove('outline-hidden');
+});
+
+favoriteButton.addEventListener('blur', () => {
+  favoriteButton.classList.remove('outline-hidden');
+});
+
+favoriteButton.addEventListener('click', event => {
+  const pressed = event.target.getAttribute('aria-pressed') === 'true';
+  event.target.setAttribute('aria-pressed', !pressed);
+
+  toggleFavorite();
+});
 
 /**
  * Initialize Google map, called from HTML.
@@ -234,8 +259,17 @@ const toggleFavorite = async (restaurant = self.restaurant) => {
   if (!restaurant) {
     return;
   }
-  self.restaurantFavoriteIsUpdating = true;
-  fillFavoriteHTML();
+  self.restaurantFavoriteStartedUpdate = true;
+
+  // If favorite wouldn't be updated in 80ms, animation will start
+  window.setTimeout(() => {
+    if (self.restaurantFavoriteStartedUpdate) {
+      self.restaurantFavoriteStartedUpdate = false;
+      self.restaurantFavoriteIsUpdating = true;
+      fillFavoriteHTML();
+    }
+  }, 80);
+
   const newFavoriteState = restaurant.is_favorite === 'true' ? 'false' : 'true';
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
     const registration = await navigator.serviceWorker.ready;
@@ -257,6 +291,7 @@ const toggleFavoriteDirectly = async newFavoriteState => {
   } catch (e) {
     console.error(e);
   }
+  self.restaurantFavoriteStartedUpdate = false;
   self.restaurantFavoriteIsUpdating = false;
   fillFavoriteHTML();
 };
@@ -265,18 +300,19 @@ const toggleFavoriteDirectly = async newFavoriteState => {
  * Render favorite toggle.
  */
 const fillFavoriteHTML = (restaurant = self.restaurant) => {
-  const favorite = document.getElementById('favorite');
-  favorite.innerHTML = '';
-
+  const isFavoriteStyle = 'restaurant-favorite-icon--is-favorite';
+  const animateFlipStyle = 'restaurant-favorite-icon--animate-flip';
   if (self.restaurantFavoriteIsUpdating) {
-    const updatingStatus = document.createElement('span');
-    updatingStatus.textContent = 'Updating...';
-    favorite.appendChild(updatingStatus);
+    favoriteIcon.classList.add(animateFlipStyle);
   } else {
-    const toggleButton = document.createElement('button');
-    toggleButton.textContent = restaurant.is_favorite;
-    toggleButton.addEventListener('click', () => toggleFavorite());
-    favorite.appendChild(toggleButton);
+    favoriteIcon.classList.remove(animateFlipStyle);
+    if (restaurant.is_favorite === 'true') {
+      favoriteIcon.classList.add(isFavoriteStyle);
+      favoriteButton.setAttribute('aria-pressed', true);
+    } else {
+      favoriteIcon.classList.remove(isFavoriteStyle);
+      favoriteButton.setAttribute('aria-pressed', false);
+    }
   }
 };
 
