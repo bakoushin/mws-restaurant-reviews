@@ -60,10 +60,15 @@ self.addEventListener('fetch', event => {
 });
 
 self.addEventListener('sync', event => {
-  if (event.tag === 'update-favorites') {
-    event.waitUntil(updateFavorites());
-  } else {
-    event.registration.unregister();
+  switch (event.tag) {
+    case 'update-favorites':
+      event.waitUntil(updateFavorites());
+      break;
+    case 'update-reviews':
+      event.waitUntil(updateReviews());
+      break;
+    default:
+      event.registration.unregister();
   }
 });
 
@@ -82,6 +87,27 @@ async function updateFavorites() {
       c.postMessage({
         action: 'favorites-updated',
         id: restaurant.id
+      })
+    );
+  }
+}
+
+async function updateReviews() {
+  let review;
+  while ((review = await DBHelper.getNextReviewFromOutbox())) {
+    try {
+      await DBHelper.postResaurantReview(review);
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+    await DBHelper.deleteReviewFromOutbox(review.restaurant_id);
+    const clients = await self.clients.matchAll({ includeUncontrolled: true });
+    clients.forEach(c =>
+      c.postMessage({
+        action: 'reviews-updated',
+        restaurant_id: review.restaurant_id,
+        id: review.id
       })
     );
   }

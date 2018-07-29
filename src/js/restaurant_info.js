@@ -2,13 +2,18 @@ import DBHelper from './dbhelper';
 import 'normalize.css';
 import './../scss/restaurant.scss';
 
+const RESPONSE_TRESHOLD = 80; // Maximum waiting time for network response before showing spinners etc.
+
 let restaurant;
-let reviews;
+let reviews = [];
+let reviewsInOutbox = [];
 
 var map;
 
 const favoriteButton = document.querySelector('.restaurant-favorite-button');
 const favoriteIcon = document.querySelector('.restaurant-favorite-icon');
+const reviewForm = document.querySelector('.review-form');
+const submitReviewButton = document.querySelector('.submit-review-button');
 
 const markRestaurantOnMap = () => {
   self.map = new google.maps.Map(document.getElementById('google-map'), {
@@ -38,14 +43,22 @@ document.addEventListener('DOMContentLoaded', fetchRestaurant);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', async ({ data }) => {
-    if (data.action === 'favorites-updated') {
-      const { id } = data;
-      self.restaurant = await DBHelper.fetchRestaurantById(id);
-      self.restaurantFavoriteIsUpdating = Boolean(await DBHelper.getFavoriteFromOutboxById(id));
-      if (self.restaurantFavoriteStartedUpdate) {
-        self.restaurantFavoriteStartedUpdate = self.restaurantFavoriteIsUpdating;
-      }
-      fillFavoriteHTML();
+    switch (data.action) {
+      case 'favorites-updated':
+        if (data.id === self.restaurant.id) {
+          self.restaurant = await DBHelper.fetchRestaurantById(data.id);
+          self.restaurantFavoriteIsUpdating = Boolean(await DBHelper.getFavoriteFromOutboxById(data.id));
+          if (self.restaurantFavoriteStartedUpdate) {
+            self.restaurantFavoriteStartedUpdate = self.restaurantFavoriteIsUpdating;
+          }
+          fillFavoriteHTML();
+        }
+        break;
+      case 'reviews-updated':
+        if (data.restaurant_id === self.restaurant.id) {
+          fetchRestaurantReviewsById(data.restaurant_id);
+        }
+        break;
     }
   });
 }
@@ -68,6 +81,51 @@ favoriteButton.addEventListener('click', event => {
 
   toggleFavorite();
 });
+
+submitReviewButton.addEventListener('click', event => {
+  event.preventDefault();
+  postReview();
+});
+
+const postReview = async (restaurant = self.restaurant) => {
+  const rating = Number(reviewForm['rating'].value);
+  const name = reviewForm['name'].value;
+  const comments = reviewForm['comments'].value;
+
+  const review = {
+    restaurant_id: restaurant.id,
+    name,
+    rating,
+    comments
+  };
+
+  self.reviewsInOutbox.push(review);
+  fillReviewsHTML();
+
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    const registration = await navigator.serviceWorker.ready;
+    await DBHelper.addReviewToOutbox(review);
+    try {
+      await registration.sync.register('update-reviews');
+      reviewForm.reset();
+    } catch (e) {
+      console.error(e);
+      postReviewDirectly(review);
+    }
+  } else {
+    postReviewDirectly(review);
+  }
+};
+
+const postReviewDirectly = async review => {
+  try {
+    await DBHelper.postResaurantReview(review);
+    reviewForm.reset();
+  } catch (e) {
+    console.error(e);
+  }
+  fillReviewsHTML();
+};
 
 /**
  * Initialize Google map, called from HTML.
@@ -190,38 +248,54 @@ const fetchRestaurantReviewsFromURL = async () => {
     // no id found in URL
     throw new Error('No restaurant id in URL');
   } else {
-    const reviews = await DBHelper.fetchRestaurantReviewsById(id);
-    self.restaurant.reviews = reviews;
-    fillReviewsHTML();
+    fetchRestaurantReviewsById(id);
   }
+};
+
+/**
+ * Get restaurant reviews by restaurant id.
+ */
+const fetchRestaurantReviewsById = async id => {
+  const [reviews, reviewsInOutbox] = await Promise.all([
+    DBHelper.fetchRestaurantReviewsById(id),
+    DBHelper.getReviewsFromOutboxByRestaurantId(id)
+  ]);
+  self.reviews = reviews || [];
+  self.reviewsInOutbox = reviewsInOutbox || [];
+  fillReviewsHTML();
 };
 
 /**
  * Create all reviews HTML and add them to the webpage.
  */
-const fillReviewsHTML = (reviews = self.restaurant.reviews) => {
+const fillReviewsHTML = (reviews = self.reviews, reviewsInOutbox = self.reviewsInOutbox) => {
   const container = document.getElementById('reviews-container');
-  const title = document.createElement('h2');
-  title.innerHTML = 'Reviews';
-  container.appendChild(title);
 
   if (!reviews || reviews.length === 0) {
     const noReviews = document.createElement('p');
-    noReviews.innerHTML = 'No reviews yet!';
+    noReviews.innerHTML = 'No reviews yet. Let your be first!';
     container.appendChild(noReviews);
     return;
   }
+
   const ul = document.getElementById('reviews-list');
+  ul.innerHTML = '';
+
   reviews.forEach(review => {
     ul.appendChild(createReviewHTML(review));
   });
-  container.appendChild(ul);
+
+  if (reviewsInOutbox && reviewsInOutbox.length > 0) {
+    reviewsInOutbox.forEach(review => {
+      ul.appendChild(createReviewHTML(review, true));
+    });
+  }
 };
 
 /**
  * Create review HTML and add it to the webpage.
  */
-const createReviewHTML = review => {
+const createReviewHTML = (review, reviewIsPending = false) => {
   const li = document.createElement('li');
   const name = document.createElement('p');
   name.innerHTML = review.name;
@@ -238,6 +312,12 @@ const createReviewHTML = review => {
   const comments = document.createElement('p');
   comments.innerHTML = review.comments;
   li.appendChild(comments);
+
+  if (reviewIsPending) {
+    const info = document.createElement('p');
+    info.textContent = 'Sending to server';
+    li.appendChild(info);
+  }
 
   return li;
 };
@@ -261,14 +341,14 @@ const toggleFavorite = async (restaurant = self.restaurant) => {
   }
   self.restaurantFavoriteStartedUpdate = true;
 
-  // If favorite wouldn't be updated in 80ms, animation will start
+  // If favorite wouldn't be updated in RESPONSE_TRESHOLD, animation will start
   window.setTimeout(() => {
     if (self.restaurantFavoriteStartedUpdate) {
       self.restaurantFavoriteStartedUpdate = false;
       self.restaurantFavoriteIsUpdating = true;
       fillFavoriteHTML();
     }
-  }, 80);
+  }, RESPONSE_TRESHOLD);
 
   const newFavoriteState = restaurant.is_favorite === 'true' ? 'false' : 'true';
   if ('serviceWorker' in navigator && 'SyncManager' in window) {

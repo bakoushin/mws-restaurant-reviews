@@ -38,11 +38,33 @@
       </button>
     </section>
     <section class="map">
-      <a href="#reviews-container" class="map__skip-link">Skip map for reviews</a>
+      <a href="#reviews" class="map__skip-link">Skip map for reviews</a>
       <div id="google-map" class="map__google-map" role="application" aria-label="Map showing resaurant location"></div>
     </section>
-    <section id="reviews-container" tabindex="-1">
-      <ul id="reviews-list"></ul>
+    <section id="reviews" tabindex="-1">
+      <h2>Reviews</h2>
+      <div clas="reviews-container">
+        <ul id="reviews-list"></ul>
+      </div>
+      <form class="review-form">
+        <label>Your name:
+          <input type="text" name="name"></input>
+        </label>
+        <label>Your rating:
+          <select name="rating">
+            <option value="0">Rate this restaurant...</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </label>
+        <label>Your comments:
+          <textarea name="comments"></textarea>
+        </label>
+        <button type="submit" class="submit-review-button">Post review</button>
+      </form>
     </section>
   </main>
 

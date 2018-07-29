@@ -48,6 +48,13 @@ export default class DBHelper {
   }
 
   /**
+   * Reviews background sync outbox store name.
+   */
+  static get REVIEWS_OUTBOX_STORE_NAME() {
+    return 'reviews-outbox';
+  }
+
+  /**
    * Fetch all restaurants using cached data from IndexedDB first.
    */
   static async fetchRestaurants() {
@@ -163,6 +170,27 @@ export default class DBHelper {
   }
 
   /**
+   * Post restaurant review.
+   */
+  static async postResaurantReview(data) {
+    const response = await fetch(`${DBHelper.DATABASE_URL}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    if (response.ok) {
+      const [review, db] = await Promise.all([response.json(), DBHelper.openIndexedDB()]);
+      if (db) {
+        db.transaction(DBHelper.REVIEWS_STORE_NAME, 'readwrite')
+          .objectStore(DBHelper.REVIEWS_STORE_NAME)
+          .put(review);
+      }
+      return review;
+    } else {
+      throw new Error(`Failed posting review for restaurant ${id}: ${response.status} ${response.statusText}`);
+    }
+  }
+
+  /**
    * Set restaurant `is_favorite` property.
    */
   static async setResutaurantIsFavoriteProperty(id, isFavorite) {
@@ -225,6 +253,50 @@ export default class DBHelper {
     return db
       .transaction(DBHelper.FAVORITES_OUTBOX_STORE_NAME, 'readwrite')
       .objectStore(DBHelper.FAVORITES_OUTBOX_STORE_NAME)
+      .delete(id);
+  }
+
+  /**
+   * Add review to outbox for background sync.
+   */
+  static async addReviewToOutbox(data) {
+    const db = await DBHelper.openIndexedDB();
+    return db
+      .transaction(DBHelper.REVIEWS_OUTBOX_STORE_NAME, 'readwrite')
+      .objectStore(DBHelper.REVIEWS_OUTBOX_STORE_NAME)
+      .put(data);
+  }
+
+  /**
+   * Get review from outbox by restaurant id.
+   */
+  static async getReviewsFromOutboxByRestaurantId(id) {
+    const db = await DBHelper.openIndexedDB();
+    return db
+      .transaction(DBHelper.REVIEWS_OUTBOX_STORE_NAME, 'readonly')
+      .objectStore(DBHelper.REVIEWS_OUTBOX_STORE_NAME)
+      .getAll(IDBKeyRange.only(id));
+  }
+
+  /**
+   * Get next review from outbox.
+   */
+  static async getNextReviewFromOutbox() {
+    const db = await DBHelper.openIndexedDB();
+    return db
+      .transaction(DBHelper.REVIEWS_OUTBOX_STORE_NAME, 'readonly')
+      .objectStore(DBHelper.REVIEWS_OUTBOX_STORE_NAME)
+      .get(IDBKeyRange.lowerBound(0));
+  }
+
+  /**
+   * Remove review from outbox.
+   */
+  static async deleteReviewFromOutbox(id) {
+    const db = await DBHelper.openIndexedDB();
+    return db
+      .transaction(DBHelper.REVIEWS_OUTBOX_STORE_NAME, 'readwrite')
+      .objectStore(DBHelper.REVIEWS_OUTBOX_STORE_NAME)
       .delete(id);
   }
 
@@ -340,8 +412,12 @@ export default class DBHelper {
 
               // Create new object store for favorites background sync outbox
               upgradeDb.createObjectStore(DBHelper.FAVORITES_OUTBOX_STORE_NAME, {
-                keyPath: 'id',
-                autoIncrement: true
+                keyPath: 'id'
+              });
+
+              // Create new object store for reviews background sync outbox
+              upgradeDb.createObjectStore(DBHelper.REVIEWS_OUTBOX_STORE_NAME, {
+                keyPath: 'restaurant_id'
               });
           }
         });
