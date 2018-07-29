@@ -3,9 +3,9 @@ import LazyLoad from 'vanilla-lazyload';
 import 'normalize.css';
 import './../scss/main.scss';
 
-let restaurants;
-let neighborhoods;
-let cuisines;
+let restaurants = [];
+let neighborhoods = [];
+let cuisines = [];
 
 var map;
 self.markers = [];
@@ -22,6 +22,43 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchCuisines();
   updateRestaurants();
 });
+
+const loadStaticMap = () => {
+  const mapContainer = document.getElementById('google-map');
+  const width = mapContainer.offsetWidth;
+  const height = mapContainer.offsetHeight;
+
+  const scale = Math.round(window.devicePixelRatio);
+
+  const loc = {
+    lat: 40.722216,
+    lng: -73.987501
+  };
+
+  const zoom = 12;
+
+  const googleMapsUrl = 'https://maps.googleapis.com/maps/api/staticmap';
+  const key = 'AIzaSyBvdHH0g7-h0c1OT-azyIgm11IkSZUe3S8';
+
+  const { lat, lng } = loc;
+
+  const markers = self.restaurants
+    .map(r => {
+      const { lat, lng } = r.latlng;
+      return `${lat},${lng}`;
+    })
+    .join('|');
+
+  const url = `${googleMapsUrl}?center=${lat},${lng}&zoom=${zoom}&size=${width}x${height}&scale=${scale}&key=${key}`;
+
+  mapContainer.style.backgroundImage = `url(${url})`;
+
+  window.setTimeout(() => {
+    const script = document.createElement('script');
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBvdHH0g7-h0c1OT-azyIgm11IkSZUe3S8&callback=initMap';
+    document.body.appendChild(script);
+  }, 300);
+};
 
 /**
  * Fetch all neighborhoods and set their HTML.
@@ -87,7 +124,7 @@ window.initMap = () => {
     center: loc,
     scrollwheel: false
   });
-  updateRestaurants();
+  addMarkersToMap();
 };
 
 /**
@@ -109,6 +146,7 @@ const updateRestaurants = async () => {
   } catch (e) {
     console.error(e);
   }
+  loadStaticMap();
   fillRestaurantsHTML();
 };
 
