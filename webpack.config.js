@@ -105,8 +105,9 @@ module.exports = (env, argv) => {
         entry: path.join(__dirname, 'src/js/sw.js')
       }),
       new CopyWebpackPlugin([
-        { from: 'assets/placeholder-image', to: 'assets/' },
+        'manifest.json',
         { from: 'icons', to: 'icons/' },
+        { from: 'assets/placeholder-image', to: 'assets/' },
         { from: path.join(__dirname, 'img'), to: 'img/' }
       ])
     ]
