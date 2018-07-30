@@ -1,5 +1,7 @@
 import DBHelper from './dbhelper';
-import { RESPONSE_TRESHOLD, GOOGLE_MAPS_KEY } from './constants';
+import MapHelper from './maphelper';
+import { RESPONSE_TRESHOLD } from './constants';
+import './service_worker';
 import 'normalize.css';
 import './../scss/restaurant.scss';
 
@@ -14,33 +16,46 @@ const favoriteIcon = document.querySelector('.restaurant-favorite-icon');
 const reviewForm = document.querySelector('.review-form');
 const submitReviewButton = document.querySelector('.submit-review-button');
 
+/**
+ * Fetch restaurant data as soon as the page is loaded.
+ */
 document.addEventListener('DOMContentLoaded', () => {
   fetchRestaurant();
 });
 
+/**
+ * Avoid displaying outline when favorite button is clicked by mouse.
+ */
 favoriteButton.addEventListener('mousedown', () => {
   favoriteButton.classList.add('outline-hidden');
 });
-
 favoriteButton.addEventListener('keydown', () => {
   favoriteButton.classList.remove('outline-hidden');
 });
-
 favoriteButton.addEventListener('blur', () => {
   favoriteButton.classList.remove('outline-hidden');
 });
 
+/**
+ * Toggle aria-pressed attribute on favorite button click.
+ */
 favoriteButton.addEventListener('click', event => {
   const pressed = event.target.getAttribute('aria-pressed') === 'true';
   event.target.setAttribute('aria-pressed', !pressed);
   toggleFavorite();
 });
 
+/**
+ * Post review to the server on form submit.
+ */
 submitReviewButton.addEventListener('click', event => {
   event.preventDefault();
   postReview();
 });
 
+/**
+ * Listen to messages from Background Sync API if it is supported by browser.
+ */
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', async ({ data }) => {
     switch (data.action) {
@@ -67,29 +82,14 @@ if ('serviceWorker' in navigator) {
  * Initialize interactive Google map.
  */
 window.initInteractiveMap = () => {
-  self.map = new google.maps.Map(document.getElementById('google-map'), {
+  const mapContainer = MapHelper.mapContainer;
+  self.map = new google.maps.Map(mapContainer, {
     zoom: 16,
     center: self.restaurant.latlng,
     scrollwheel: false
   });
-  DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
-};
-
-/**
- * Load static Google map.
- */
-const loadMap = () => {
-  // TODO: Load static map
-  loadInteractiveMap();
-};
-
-/**
- * Load interactive Google map.
- */
-const loadInteractiveMap = async () => {
-  const script = document.createElement('script');
-  script.src = `https://maps.googleapis.com/maps/api/js?callback=initInteractiveMap&key=${GOOGLE_MAPS_KEY}`;
-  document.body.appendChild(script);
+  MapHelper.removeMapBlur();
+  MapHelper.mapMarkerForRestaurant(self.restaurant, self.map);
 };
 
 /**
@@ -99,7 +99,7 @@ const fetchRestaurant = async () => {
   try {
     await fetchRestaurantFromURL();
     fillBreadcrumb();
-    loadMap();
+    MapHelper.loadMap();
     fetchRestaurantReviewsFromURL();
   } catch (e) {
     console.error(e);
@@ -128,6 +128,16 @@ const fetchRestaurantFromURL = async () => {
 
     fillRestaurantHTML();
   }
+};
+
+/**
+ * Add restaurant name to the breadcrumb navigation menu
+ */
+const fillBreadcrumb = (restaurant = self.restaurant) => {
+  const breadcrumb = document.getElementById('breadcrumb');
+  const li = document.createElement('li');
+  li.innerHTML = restaurant.name;
+  breadcrumb.appendChild(li);
 };
 
 /**
@@ -337,16 +347,6 @@ const postReviewDirectly = async review => {
     console.error(e);
   }
   fillReviewsHTML();
-};
-
-/**
- * Add restaurant name to the breadcrumb navigation menu
- */
-const fillBreadcrumb = (restaurant = self.restaurant) => {
-  const breadcrumb = document.getElementById('breadcrumb');
-  const li = document.createElement('li');
-  li.innerHTML = restaurant.name;
-  breadcrumb.appendChild(li);
 };
 
 /**

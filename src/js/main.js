@@ -1,6 +1,8 @@
-import DBHelper from './dbhelper';
 import LazyLoad from 'vanilla-lazyload';
-import { GOOGLE_MAPS_KEY } from './constants';
+import DBHelper from './dbhelper';
+import MapHelper from './maphelper';
+import { DEFAULT_LOCATION } from './constants';
+import './service_worker';
 import 'normalize.css';
 import './../scss/main.scss';
 
@@ -24,40 +26,17 @@ document.addEventListener('DOMContentLoaded', () => {
   updateRestaurants();
 });
 
-const loadStaticMap = () => {
-  const mapContainer = document.getElementById('google-map');
-  const width = mapContainer.offsetWidth;
-  const height = mapContainer.offsetHeight;
-
-  const scale = Math.round(window.devicePixelRatio);
-
-  const loc = {
-    lat: 40.722216,
-    lng: -73.987501
-  };
-
-  const zoom = 12;
-
-  const googleMapsUrl = 'https://maps.googleapis.com/maps/api/staticmap';
-
-  const { lat, lng } = loc;
-
-  const markers = self.restaurants
-    .map(r => {
-      const { lat, lng } = r.latlng;
-      return `${lat},${lng}`;
-    })
-    .join('|');
-
-  const url = `${googleMapsUrl}?center=${lat},${lng}&zoom=${zoom}&size=${width}x${height}&scale=${scale}&key=${GOOGLE_MAPS_KEY}`;
-
-  mapContainer.style.backgroundImage = `url(${url})`;
-
-  window.setTimeout(() => {
-    const script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBvdHH0g7-h0c1OT-azyIgm11IkSZUe3S8&callback=initMap';
-    document.body.appendChild(script);
-  }, 300);
+/**
+ * Initialize Google map, called from HTML.
+ */
+window.initInteractiveMap = () => {
+  self.map = new google.maps.Map(document.getElementById('google-map'), {
+    zoom: 12,
+    center: DEFAULT_LOCATION,
+    scrollwheel: false
+  });
+  MapHelper.removeMapBlur();
+  addMarkersToMap();
 };
 
 /**
@@ -112,22 +91,6 @@ const fillCuisinesHTML = (cuisines = self.cuisines) => {
 };
 
 /**
- * Initialize Google map, called from HTML.
- */
-window.initMap = () => {
-  const loc = {
-    lat: 40.722216,
-    lng: -73.987501
-  };
-  self.map = new google.maps.Map(document.getElementById('google-map'), {
-    zoom: 12,
-    center: loc,
-    scrollwheel: false
-  });
-  addMarkersToMap();
-};
-
-/**
  * Update page and map for current restaurants.
  */
 const updateRestaurants = async () => {
@@ -146,7 +109,8 @@ const updateRestaurants = async () => {
   } catch (e) {
     console.error(e);
   }
-  loadStaticMap();
+
+  MapHelper.loadMap();
   fillRestaurantsHTML();
 };
 
@@ -240,110 +204,10 @@ const addMarkersToMap = (restaurants = self.restaurants) => {
   }
   restaurants.forEach(restaurant => {
     // Add marker to the map
-    const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.map);
+    const marker = MapHelper.mapMarkerForRestaurant(restaurant, self.map);
     google.maps.event.addListener(marker, 'click', () => {
       window.location.href = marker.url;
     });
     self.markers.push(marker);
   });
 };
-
-/**
- * Service worker.
- */
-
-const serviceWorkerUpdateReady = serviceWorker => {
-  const notification = document.querySelector('.notification');
-  const updateButton = notification.querySelector('.notification__button_type_update');
-  const postponeButton = notification.querySelector('.notification__button_type_postpone');
-
-  const focusedElementBeforeNotification = document.activeElement;
-  const closeNotification = () => {
-    notification.classList.remove('notification_visible');
-    focusedElementBeforeNotification.focus();
-  };
-
-  notification.addEventListener('keydown', event => {
-    const TAB = 9;
-    const ESC = 27;
-    if (event.keyCode === TAB) {
-      if (event.shiftKey) {
-        if (document.activeElement === updateButton) {
-          event.preventDefault();
-          postponeButton.focus();
-        }
-      } else {
-        if (document.activeElement === postponeButton) {
-          event.preventDefault();
-          updateButton.focus();
-        }
-      }
-    }
-    if (event.keyCode === ESC) {
-      closeNotification();
-    }
-  });
-
-  notification.classList.add('notification_visible');
-  updateButton.focus();
-
-  updateButton.addEventListener('click', () => {
-    if (serviceWorker.state === 'installed') {
-      serviceWorker.postMessage({ action: 'skipWaiting' });
-    }
-  });
-
-  postponeButton.addEventListener('click', closeNotification);
-
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
-  });
-};
-
-const trackServiceWorkerInstalling = serviceWorker => {
-  serviceWorker.addEventListener('statechange', () => {
-    if (serviceWorker.state === 'installed') {
-      serviceWorkerUpdateReady(serviceWorker);
-    }
-  });
-};
-
-const registerServiceWorker = () => {
-  if (!navigator.serviceWorker) {
-    return;
-  }
-
-  window.addEventListener('load', async () => {
-    const ONE_HOUR = 60 * 60 * 1000;
-
-    try {
-      const reg = await navigator.serviceWorker.register('/sw.js');
-
-      setInterval(() => {
-        reg.update();
-      }, ONE_HOUR);
-
-      if (!navigator.serviceWorker.controller) {
-        return;
-      }
-
-      reg.addEventListener('updatefound', () => {
-        trackServiceWorkerInstalling(reg.installing);
-      });
-
-      if (reg.installing) {
-        trackServiceWorkerInstalling(reg.installing);
-        return;
-      }
-
-      if (reg.waiting) {
-        serviceWorkerUpdateReady(reg.waiting);
-        return;
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  });
-};
-
-registerServiceWorker();

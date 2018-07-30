@@ -5,6 +5,12 @@
     height: 400px;
     width: 100%;
     background-color: #ccc;
+    transform: filter 2s ease-in;
+
+    &--blurry {
+      filter: blur(6px);
+      filter: progid:DXImageTransform.Microsoft.Blur(PixelRadius='6');
+    }
   }
 
   &__skip-link {

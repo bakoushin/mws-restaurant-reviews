@@ -21,13 +21,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.filter(key => key.startsWith(APP_PREFIX) && !allCaches.includes(key)).map(key => caches.delete(key))
-      );
-    })
-  );
+  event.waitUntil(removeRedundantCaches());
 });
 
 self.addEventListener('fetch', event => {
@@ -88,6 +82,13 @@ const buildStaticCache = async () => {
   const cache = await caches.open(STATIC_CACHE);
   return cache.addAll([...dynamicAssets, ...staticAssets]);
 };
+
+const removeRedundantCaches = async () => {
+  const keys = await caches.keys();
+  return Promise.all(
+    keys.filter(key => key.startsWith(APP_PREFIX) && !allCaches.includes(key)).map(key => caches.delete(key))
+  );
+}
 
 const servePhoto = async request => {
   const url = new URL(request.url);
