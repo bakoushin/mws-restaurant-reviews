@@ -27,6 +27,7 @@
     height: 35px;
     border-radius: 6px;
     padding: 6px;
+    margin-bottom: 20px;
   }
 
   & input:focus,
@@ -41,7 +42,7 @@
   }
 
   & button {
-    margin: 20px 0 0;
+    margin: 0;
     padding: 12px 25px;
     background-color: #b36200;
     border: none;
@@ -58,13 +59,12 @@
   &__group {
     width: 100%;
     display: flex;
-    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
   }
 
   &__column {
-    flex: 1 1 auto;
-    &:last-child {
-      margin-left: 10px;
-    }
+    flex: 1 0 220px;
+    padding: 0 5px;
   }
 }
