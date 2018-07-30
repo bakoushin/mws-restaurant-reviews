@@ -42,13 +42,15 @@ export default class MapHelper {
     mapContainer.style.backgroundImage = `url(${url})`;
     mapContainer.classList.add('map__google-map--blurry');
 
-    MapHelper.loadInteractiveMap();
+    window.setTimeout(() => {
+      MapHelper.loadInteractiveMap();
+    }, 1000);
   }
 
   /**
    * Load interactive Google map.
    */
-  static async loadInteractiveMap() {
+  static loadInteractiveMap() {
     const script = document.createElement('script');
     script.src = `${MapHelper.INTERACTIVE_MAP_URL}?callback=initInteractiveMap&key=${GOOGLE_MAPS_KEY}`;
     document.body.appendChild(script);

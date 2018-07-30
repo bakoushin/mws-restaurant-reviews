@@ -4,8 +4,10 @@
   &__google-map {
     height: 400px;
     width: 100%;
-    background-color: #ccc;
-    transform: filter 2s ease-in;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+    transform: filter 1s ease-in;
 
     &--blurry {
       filter: blur(6px);
