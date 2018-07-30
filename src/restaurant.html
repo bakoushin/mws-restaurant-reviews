@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <meta name="theme-color" content="#252831">
+  <link rel="manifest" href="/manifest.json">
   <title>Restaurant Info</title>
 </head>
 
@@ -52,12 +53,12 @@
       <form>
         <div class="review-form__group">
           <div class="review-form__column">
-            <label for="name">Your name:</label>
-            <input type="text" name="name"></input>
+            <label for="review-form-name">Your name:</label>
+            <input type="text" name="name" id="review-form-name"></input>
           </div>
           <div class="review-form__column">
-            <label for="rating">Rating:</label>
-            <select name="rating">
+            <label for="review-form-rating">Rating:</label>
+            <select name="rating" id="review-form-rating">
               <option value="0">Rate this restaurant...</option>
               <option value="1">1 – Terrible</option>
               <option value="2">2 – Bad</option>
@@ -69,8 +70,8 @@
         </div>
         <div class="review-form__group">
           <div class="review-form__column">
-            <label for="comments">Comments:</label>
-            <textarea name="comments"></textarea>
+            <label for="review-form-comments">Comments:</label>
+            <textarea name="comments" id="review-form-comments"></textarea>
             <button type="submit" class="submit-review-button">Post review</button>
           </div>
         </div>
