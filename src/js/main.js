@@ -1,5 +1,6 @@
 import DBHelper from './dbhelper';
 import LazyLoad from 'vanilla-lazyload';
+import { GOOGLE_MAPS_KEY } from './constants';
 import 'normalize.css';
 import './../scss/main.scss';
 
@@ -38,7 +39,6 @@ const loadStaticMap = () => {
   const zoom = 12;
 
   const googleMapsUrl = 'https://maps.googleapis.com/maps/api/staticmap';
-  const key = 'AIzaSyBvdHH0g7-h0c1OT-azyIgm11IkSZUe3S8';
 
   const { lat, lng } = loc;
 
@@ -49,7 +49,7 @@ const loadStaticMap = () => {
     })
     .join('|');
 
-  const url = `${googleMapsUrl}?center=${lat},${lng}&zoom=${zoom}&size=${width}x${height}&scale=${scale}&key=${key}`;
+  const url = `${googleMapsUrl}?center=${lat},${lng}&zoom=${zoom}&size=${width}x${height}&scale=${scale}&key=${GOOGLE_MAPS_KEY}`;
 
   mapContainer.style.backgroundImage = `url(${url})`;
 

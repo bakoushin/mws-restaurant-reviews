@@ -1,8 +1,7 @@
 import DBHelper from './dbhelper';
+import { RESPONSE_TRESHOLD, GOOGLE_MAPS_KEY } from './constants';
 import 'normalize.css';
 import './../scss/restaurant.scss';
-
-const RESPONSE_TRESHOLD = 80; // Maximum waiting time for network response before showing spinners etc.
 
 let restaurant;
 let reviews = [];
@@ -15,31 +14,32 @@ const favoriteIcon = document.querySelector('.restaurant-favorite-icon');
 const reviewForm = document.querySelector('.review-form');
 const submitReviewButton = document.querySelector('.submit-review-button');
 
-const markRestaurantOnMap = () => {
-  self.map = new google.maps.Map(document.getElementById('google-map'), {
-    zoom: 16,
-    center: self.restaurant.latlng,
-    scrollwheel: false
-  });
-  DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
-};
+document.addEventListener('DOMContentLoaded', () => {
+  fetchRestaurant();
+});
 
-const fetchRestaurant = async () => {
-  if (!self.restaurant && !self.resaurantIsFetching) {
-    try {
-      await fetchRestaurantFromURL();
-      if (!self.map && self.google) {
-        markRestaurantOnMap();
-      }
-      fillBreadcrumb();
-      fetchRestaurantReviewsFromURL();
-    } catch (e) {
-      console.error(e);
-    }
-  }
-};
+favoriteButton.addEventListener('mousedown', () => {
+  favoriteButton.classList.add('outline-hidden');
+});
 
-document.addEventListener('DOMContentLoaded', fetchRestaurant);
+favoriteButton.addEventListener('keydown', () => {
+  favoriteButton.classList.remove('outline-hidden');
+});
+
+favoriteButton.addEventListener('blur', () => {
+  favoriteButton.classList.remove('outline-hidden');
+});
+
+favoriteButton.addEventListener('click', event => {
+  const pressed = event.target.getAttribute('aria-pressed') === 'true';
+  event.target.setAttribute('aria-pressed', !pressed);
+  toggleFavorite();
+});
+
+submitReviewButton.addEventListener('click', event => {
+  event.preventDefault();
+  postReview();
+});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', async ({ data }) => {
@@ -63,81 +63,46 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-favoriteButton.addEventListener('mousedown', () => {
-  favoriteButton.classList.add('outline-hidden');
-});
-
-favoriteButton.addEventListener('keydown', () => {
-  favoriteButton.classList.remove('outline-hidden');
-});
-
-favoriteButton.addEventListener('blur', () => {
-  favoriteButton.classList.remove('outline-hidden');
-});
-
-favoriteButton.addEventListener('click', event => {
-  const pressed = event.target.getAttribute('aria-pressed') === 'true';
-  event.target.setAttribute('aria-pressed', !pressed);
-
-  toggleFavorite();
-});
-
-submitReviewButton.addEventListener('click', event => {
-  event.preventDefault();
-  postReview();
-});
-
-const postReview = async (restaurant = self.restaurant) => {
-  const rating = Number(reviewForm['rating'].value);
-  const name = reviewForm['name'].value;
-  const comments = reviewForm['comments'].value;
-
-  const timestamp = Date.now();
-  const review = {
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    restaurant_id: restaurant.id,
-    name,
-    rating,
-    comments
-  };
-
-  self.reviewsInOutbox.push(review);
-  fillReviewsHTML();
-
-  if ('serviceWorker' in navigator && 'SyncManager' in window) {
-    const registration = await navigator.serviceWorker.ready;
-    await DBHelper.addReviewToOutbox(review);
-    try {
-      await registration.sync.register('sync-reviews');
-      reviewForm.reset();
-    } catch (e) {
-      console.error(e);
-      postReviewDirectly(review);
-    }
-  } else {
-    postReviewDirectly(review);
-  }
-};
-
-const postReviewDirectly = async review => {
-  try {
-    await DBHelper.postResaurantReview(review);
-    reviewForm.reset();
-  } catch (e) {
-    console.error(e);
-  }
-  fillReviewsHTML();
+/**
+ * Initialize interactive Google map.
+ */
+window.initInteractiveMap = () => {
+  self.map = new google.maps.Map(document.getElementById('google-map'), {
+    zoom: 16,
+    center: self.restaurant.latlng,
+    scrollwheel: false
+  });
+  DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
 };
 
 /**
- * Initialize Google map, called from HTML.
+ * Load static Google map.
  */
-window.initMap = () => {
-  if (self.restaurant) {
-    markRestaurantOnMap();
-  } else {
-    fetchRestaurant();
+const loadMap = () => {
+  // TODO: Load static map
+  loadInteractiveMap();
+};
+
+/**
+ * Load interactive Google map.
+ */
+const loadInteractiveMap = async () => {
+  const script = document.createElement('script');
+  script.src = `https://maps.googleapis.com/maps/api/js?callback=initInteractiveMap&key=${GOOGLE_MAPS_KEY}`;
+  document.body.appendChild(script);
+};
+
+/**
+ * Fetch resaurant data and fill the page.
+ */
+const fetchRestaurant = async () => {
+  try {
+    await fetchRestaurantFromURL();
+    fillBreadcrumb();
+    loadMap();
+    fetchRestaurantReviewsFromURL();
+  } catch (e) {
+    console.error(e);
   }
 };
 
@@ -326,6 +291,55 @@ const createReviewHTML = (review, reviewIsPending = false) => {
 };
 
 /**
+ * Post review to server.
+ */
+const postReview = async (restaurant = self.restaurant) => {
+  const rating = Number(reviewForm['rating'].value);
+  const name = reviewForm['name'].value;
+  const comments = reviewForm['comments'].value;
+
+  const timestamp = Date.now();
+  const review = {
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    restaurant_id: restaurant.id,
+    name,
+    rating,
+    comments
+  };
+
+  self.reviewsInOutbox.push(review);
+  fillReviewsHTML();
+
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    const registration = await navigator.serviceWorker.ready;
+    await DBHelper.addReviewToOutbox(review);
+    try {
+      await registration.sync.register('sync-reviews');
+      reviewForm.reset();
+    } catch (e) {
+      console.error(e);
+      postReviewDirectly(review);
+    }
+  } else {
+    postReviewDirectly(review);
+  }
+};
+
+/**
+ * Post request directly to server.
+ */
+const postReviewDirectly = async review => {
+  try {
+    await DBHelper.postResaurantReview(review);
+    reviewForm.reset();
+  } catch (e) {
+    console.error(e);
+  }
+  fillReviewsHTML();
+};
+
+/**
  * Add restaurant name to the breadcrumb navigation menu
  */
 const fillBreadcrumb = (restaurant = self.restaurant) => {
@@ -368,6 +382,9 @@ const toggleFavorite = async (restaurant = self.restaurant) => {
   }
 };
 
+/**
+ * Toggle favorite with direct request to server.
+ */
 const toggleFavoriteDirectly = async newFavoriteState => {
   try {
     self.restaurant = await DBHelper.setResutaurantIsFavoriteProperty(self.restaurant.id, newFavoriteState);
