@@ -16,8 +16,7 @@
   will-change: transform;
   transform: translateY(300px);
   transition: 0.5s transform cubic-bezier(0.89, 0.23, 0.59, 1.385);
-  box-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.302),
-    0 4px 8px 3px rgba(60, 64, 67, 0.149);
+  box-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.302), 0 4px 8px 3px rgba(60, 64, 67, 0.149);
   visibility: hidden;
 }
 
@@ -37,13 +36,13 @@
   padding: 4px 6px;
   margin: 0 8px;
   cursor: pointer;
-}
 
-.notification__button:first-of-type {
-  margin-left: 32px;
-}
+  &:first-of-type {
+    margin-left: 32px;
+  }
 
-.notification__button:hover,
-.notification__button:focus {
-  color: #f18200;
+  &:hover,
+  &:focus {
+    color: #f18200;
+  }
 }
