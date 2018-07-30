@@ -92,7 +92,10 @@ const postReview = async (restaurant = self.restaurant) => {
   const name = reviewForm['name'].value;
   const comments = reviewForm['comments'].value;
 
+  const timestamp = Date.now();
   const review = {
+    createdAt: timestamp,
+    updatedAt: timestamp,
     restaurant_id: restaurant.id,
     name,
     rating,
