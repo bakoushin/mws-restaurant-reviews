@@ -32,6 +32,8 @@ npm install
 npm run build
 ```
 
+The resulting bundle is in `dist` directory within project path.
+
 ### 3. Start project server
 
 This project doesn't require any specific server. It can be run on any HTTP server of choice.
@@ -49,6 +51,8 @@ python -m SimpleHTTPServer 8000
 ```
 python3 -m http.server 8000
 ```
+
+The server must be started in `dist` directory.
 
 In the examples above, the server will run on `http://localhost:8000`.
 
