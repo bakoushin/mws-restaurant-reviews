@@ -54,6 +54,7 @@ module.exports = (env, argv) => {
                       devMode,
                       preset: ['default', { discardComments: { removeAll: true } }]
                     },
+                    mqpacker: { devMode },
                     autoprefixer: { devMode }
                   }
                 }
