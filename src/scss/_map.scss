@@ -1,0 +1,45 @@
+.map {
+  position: relative;
+
+  &__google-map {
+    height: 400px;
+    width: 100%;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+    transform: filter 1s ease-in;
+
+    &--blurry {
+      filter: blur(6px);
+      filter: progid:DXImageTransform.Microsoft.Blur(PixelRadius='6');
+    }
+  }
+
+  &__skip-link {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    min-width: 50%;
+    text-align: center;
+    background: #b36200;
+    color: #000;
+    padding: 0.5em;
+    font-size: 1em;
+    line-height: 1;
+    z-index: 10000;
+    will-change: opacity;
+    opacity: 0;
+    transform: translateX(-50%);
+
+    &:link,
+    &:visited,
+    &:hover,
+    &:active {
+      color: #fff;
+    }
+
+    &:focus {
+      opacity: 1;
+    }
+  }
+}

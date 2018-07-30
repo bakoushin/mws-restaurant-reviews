@@ -1,0 +1,33 @@
+#reviews {
+  padding: 30px 40px 10px;
+  outline: none;
+
+  & h2 {
+    color: #b35f00;
+    font-size: 24pt;
+    font-weight: 300;
+    letter-spacing: -1px;
+    padding-bottom: 1pt;
+  }
+}
+
+#reviews-list {
+  margin: 0;
+  padding: 0;
+
+  & li {
+    background-color: #fff;
+    border: 2px solid #f3f3f3;
+    display: block;
+    list-style-type: none;
+    margin: 0 0 30px;
+    overflow: hidden;
+    padding: 20px;
+    padding-bottom: 10px;
+    position: relative;
+  }
+
+  & li p {
+    margin: 0 0 10px;
+  }
+}

@@ -1,0 +1,35 @@
+nav {
+  margin-top: 80px;
+}
+
+#breadcrumb {
+  padding: 10px 40px 10px;
+  list-style: none;
+  background-color: #eee;
+  font-size: 17px;
+  margin: 0;
+
+  /* Display list items side by side */
+  & li {
+    display: inline;
+  }
+
+  /* Add a slash symbol (/) before/behind each list item */
+  & li + li:before {
+    padding: 8px;
+    color: black;
+    content: '/\00a0';
+  }
+
+  /* Add a color to all links inside the list */
+  & li a {
+    color: #026ac5;
+    text-decoration: none;
+  }
+
+  /* Add a color on mouse-over */
+  & li a:hover {
+    color: #01447e;
+    text-decoration: underline;
+  }
+}

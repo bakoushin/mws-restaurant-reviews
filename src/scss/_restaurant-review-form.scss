@@ -1,0 +1,70 @@
+#review-form {
+  padding: 40px 40px 100px;
+  color: #fff;
+  background-color: #207ab6;
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+
+  & h3 {
+    font-size: 16pt;
+    font-weight: normal;
+    line-height: 1;
+    margin: 0 0 30px;
+    width: 100%;
+  }
+
+  & label {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  & input,
+  & select,
+  & textarea {
+    width: 100%;
+    background-color: #fff;
+    border: 1px solid #fff;
+    height: 35px;
+    border-radius: 6px;
+    padding: 6px;
+    margin-bottom: 20px;
+  }
+
+  & input:focus,
+  & select:focus,
+  & textarea:focus,
+  & button:focus {
+    outline: rgb(255, 170, 0) auto 5px;
+  }
+
+  & textarea {
+    height: 70px;
+  }
+
+  & button {
+    margin: 0;
+    padding: 12px 25px;
+    background-color: #b36200;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 10pt;
+    text-align: center;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+}
+
+.review-form {
+  &__group {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  &__column {
+    flex: 1 0 220px;
+    padding: 0 5px;
+  }
+}

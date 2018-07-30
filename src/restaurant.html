@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="theme-color" content="#252831">
+  <link rel="manifest" href="/manifest.json">
+  <title>Restaurant Info</title>
+</head>
+
+<body class="inside">
+  <header>
+    <h1>
+      <a href="/">Restaurant Reviews</a>
+    </h1>
+  </header>
+
+  <nav role="navigation" aria-label="Breadcrumb">
+    <ul id="breadcrumb">
+      <li>
+        <a href="/">Home</a>
+      </li>
+    </ul>
+  </nav>
+
+  <main id="maincontent">
+    <section id="restaurant-container">
+      <h2 id="restaurant-name"></h2>
+      <picture id="restaurant-picture">
+        <img id="restaurant-img">
+      </picture>
+      <p id="restaurant-cuisine"></p>
+      <address id="restaurant-address"></address>
+      <table id="restaurant-hours"></table>
+      <button type="button" class="restaurant-favorite-button" aria-label="Favorite restaurant">
+        <span class="restaurant-favorite-icon"></span>
+      </button>
+    </section>
+    <section class="map">
+      <a href="#reviews" class="map__skip-link">Skip map for reviews</a>
+      <div id="google-map" class="map__google-map" role="application" aria-label="Map showing resaurant location"></div>
+    </section>
+    <section id="reviews" tabindex="-1">
+      <h2>Reviews</h2>
+      <div clas="reviews-container">
+        <ul id="reviews-list"></ul>
+      </div>
+    </section>
+    <section id="review-form">
+      <h3>Post your review:</h3>
+      <form>
+        <div class="review-form__group">
+          <div class="review-form__column">
+            <label for="review-form-name">Your name:</label>
+            <input type="text" name="name" id="review-form-name"></input>
+          </div>
+          <div class="review-form__column">
+            <label for="review-form-rating">Rating:</label>
+            <select name="rating" id="review-form-rating">
+              <option value="0">Rate this restaurant...</option>
+              <option value="1">1 – Terrible</option>
+              <option value="2">2 – Bad</option>
+              <option value="3">3 – Okay</option>
+              <option value="4">4 – Good</option>
+              <option value="5">5 – Excellent</option>
+            </select>
+          </div>
+        </div>
+        <div class="review-form__group">
+          <div class="review-form__column">
+            <label for="review-form-comments">Comments:</label>
+            <textarea name="comments" id="review-form-comments"></textarea>
+            <button type="submit" class="submit-review-button">Post review</button>
+          </div>
+        </div>
+      </form>
+
+    </section>
+  </main>
+
+  <noscript>This application needs JavaScript to run.</noscript>
+
+  <footer id="footer">
+    Copyright (c) 2018
+    <a href="/">Restaurant Reviews</a>
+    All Rights Reserved.
+  </footer>
+
+  <%= require('html-loader!./_notification.html') %>
+
+</body>
+
+</html>

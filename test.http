@@ -1,0 +1,32 @@
+
+###
+http://localhost:1337/reviews/
+
+###
+http://localhost:1337/reviews/?restaurant_id=7
+
+###
+http://localhost:1337/restaurants/1
+
+###
+
+http://localhost:1337/reviews/33
+###
+POST http://localhost:1337/reviews/
+Content-Type: application/json
+
+{
+  "restaurant_id": 1,
+  "name": "<reviewer_name>",
+  "rating": 10,
+  "comments": "<comment_text>"
+}
+
+###
+DELETE http://localhost:1337/reviews/33
+
+###
+
+PUT http://localhost:1337/restaurants/1/?is_favorite=true
+###
+PUT http://localhost:1337/restaurants/1/?is_favorite=false

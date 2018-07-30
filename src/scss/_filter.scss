@@ -1,0 +1,44 @@
+.filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  background-color: #207ab6;
+  align-items: center;
+  outline: none;
+
+  & h2 {
+    color: white;
+    font-size: 1rem;
+    font-weight: normal;
+    line-height: 1;
+    margin: 16px 16px 8px;
+    width: 100%;
+  }
+
+  & select {
+    flex: 1 1 auto;
+    width: 100%;
+    background-color: #fff;
+    border: 1px solid #fff;
+    font-family: Arial, sans-serif;
+    font-size: 11pt;
+    height: 35px;
+    letter-spacing: 0;
+    margin: 10px;
+    padding: 0 10px;
+    &:focus {
+      outline: rgb(255, 170, 0) auto 5px;
+    }
+  }
+}
+
+@include tablet {
+  .filter-options h2 {
+    width: auto;
+    margin: 0;
+    margin-left: 20px;
+    margin-right: 8px;
+  }
+  .filter-options select {
+    max-width: 200px;
+  }
+}
