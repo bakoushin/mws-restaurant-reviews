@@ -88,7 +88,7 @@ const removeRedundantCaches = async () => {
   return Promise.all(
     keys.filter(key => key.startsWith(APP_PREFIX) && !allCaches.includes(key)).map(key => caches.delete(key))
   );
-}
+};
 
 const servePhoto = async request => {
   const url = new URL(request.url);

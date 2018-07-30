@@ -36,7 +36,7 @@
     </section>
   </main>
 
-  <noscript>This application needs JavaScript.</noscript>
+  <noscript>This application needs JavaScript to run.</noscript>
 
   <footer id="footer">
     Copyright (c) 2018
@@ -44,11 +44,7 @@
     All Rights Reserved.
   </footer>
 
-  <section class="notification">
-    <span>App update is available</span>
-    <button type="button" class="notification__button notification__button_type_update">Update now</button>
-    <button type="button" class="notification__button notification__button_type_postpone">Postpone</button>
-  </section>
+  <%= require('html-loader!./_notification.html') %>
 
 </body>
 
