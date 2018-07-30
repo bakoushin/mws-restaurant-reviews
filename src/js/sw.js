@@ -7,7 +7,7 @@ const IMAGES_CACHE = `${APP_PREFIX}-img`;
 const allCaches = [STATIC_CACHE, IMAGES_CACHE];
 
 /**
- * Service worker event listeners.
+ * Event listeners.
  */
 
 self.addEventListener('message', event => {
@@ -17,12 +17,7 @@ self.addEventListener('message', event => {
 });
 
 self.addEventListener('install', event => {
-  const assets = ['/', '/main.css', '/main.js', '/restaurant.html', '/restaurant_info.css', '/restaurant_info.js'];
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then(cache => {
-      return cache.addAll(serviceWorkerOption ? serviceWorkerOption.assets : assets);
-    })
-  );
+  event.waitUntil(buildStaticCache());
 });
 
 self.addEventListener('activate', event => {
@@ -61,18 +56,65 @@ self.addEventListener('fetch', event => {
 
 self.addEventListener('sync', event => {
   switch (event.tag) {
-    case 'update-favorites':
-      event.waitUntil(updateFavorites());
+    case 'sync-favorites':
+      event.waitUntil(syncFavorites());
       break;
-    case 'update-reviews':
-      event.waitUntil(updateReviews());
+    case 'sync-reviews':
+      event.waitUntil(syncReviews());
       break;
     default:
       event.registration.unregister();
   }
 });
 
-async function updateFavorites() {
+/**
+ * Helper functions.
+ */
+
+const buildStaticCache = async () => {
+  const dynamicAssets = serviceWorkerOption
+    ? serviceWorkerOption.assets
+    : ['/', '/main.css', '/main.js', '/restaurant.html', '/restaurant_info.css', '/restaurant_info.js'];
+
+  const staticAssets = [
+    '/assets/placeholder-image.400w.jpg',
+    '/assets/placeholder-image.400w.webp',
+    '/assets/placeholder-image.600w.jpg',
+    '/assets/placeholder-image.600w.webp',
+    '/assets/placeholder-image.800w.jpg',
+    '/assets/placeholder-image.800w.webp'
+  ];
+
+  const cache = await caches.open(STATIC_CACHE);
+  return cache.addAll([...dynamicAssets, ...staticAssets]);
+};
+
+const servePhoto = async request => {
+  const url = new URL(request.url);
+  const [filename, size, extension] = url.pathname.replace('/img/', '').split('.');
+
+  const imagesCache = await caches.open(IMAGES_CACHE);
+  const cachedResponse = await imagesCache.match(filename);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  const networkResponse = await fetch(request);
+  if (networkResponse.ok) {
+    imagesCache.put(filename, networkResponse.clone());
+    return networkResponse;
+  } else {
+    const staticCache = await caches.open(STATIC_CACHE);
+    return staticCache.match(`/assets/placeholder-image.${size}.${extension}`);
+  }
+};
+
+const serveRestaurantInfo = async () => {
+  const cache = await caches.open(STATIC_CACHE);
+  return cache.match('restaurant.html');
+};
+
+const syncFavorites = async () => {
   let restaurant;
   while ((restaurant = await DBHelper.getNextFavoriteFromOutbox())) {
     try {
@@ -85,14 +127,14 @@ async function updateFavorites() {
     const clients = await self.clients.matchAll({ includeUncontrolled: true });
     clients.forEach(c =>
       c.postMessage({
-        action: 'favorites-updated',
+        action: 'favorites-synced',
         id: restaurant.id
       })
     );
   }
-}
+};
 
-async function updateReviews() {
+const syncReviews = async () => {
   let review;
   while ((review = await DBHelper.getNextReviewFromOutbox())) {
     try {
@@ -105,34 +147,10 @@ async function updateReviews() {
     const clients = await self.clients.matchAll({ includeUncontrolled: true });
     clients.forEach(c =>
       c.postMessage({
-        action: 'reviews-updated',
+        action: 'reviews-synced',
         restaurant_id: review.restaurant_id,
         id: review.id
       })
     );
   }
-}
-
-/**
- * Helper functions.
- */
-
-async function servePhoto(request) {
-  const url = new URL(request.url);
-  const filename = url.pathname.replace('/img/', '').split('.')[0];
-
-  const cache = await caches.open(IMAGES_CACHE);
-  const cachedResponse = await cache.match(filename);
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-
-  const networkResponse = await fetch(request);
-  cache.put(filename, networkResponse.clone());
-  return networkResponse;
-}
-
-async function serveRestaurantInfo() {
-  const cache = await caches.open(STATIC_CACHE);
-  return cache.match('restaurant.html');
-}
+};

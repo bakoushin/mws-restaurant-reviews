@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', fetchRestaurant);
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', async ({ data }) => {
     switch (data.action) {
-      case 'favorites-updated':
+      case 'favorites-synced':
         if (data.id === self.restaurant.id) {
           self.restaurant = await DBHelper.fetchRestaurantById(data.id);
           self.restaurantFavoriteIsUpdating = Boolean(await DBHelper.getFavoriteFromOutboxById(data.id));
@@ -54,7 +54,7 @@ if ('serviceWorker' in navigator) {
           fillFavoriteHTML();
         }
         break;
-      case 'reviews-updated':
+      case 'reviews-synced':
         if (data.restaurant_id === self.restaurant.id) {
           fetchRestaurantReviewsById(data.restaurant_id);
         }
@@ -109,7 +109,7 @@ const postReview = async (restaurant = self.restaurant) => {
     const registration = await navigator.serviceWorker.ready;
     await DBHelper.addReviewToOutbox(review);
     try {
-      await registration.sync.register('update-reviews');
+      await registration.sync.register('sync-reviews');
       reviewForm.reset();
     } catch (e) {
       console.error(e);
@@ -358,7 +358,7 @@ const toggleFavorite = async (restaurant = self.restaurant) => {
     const registration = await navigator.serviceWorker.ready;
     await DBHelper.addFavoriteToOutbox(restaurant.id, newFavoriteState);
     try {
-      await registration.sync.register('update-favorites');
+      await registration.sync.register('sync-favorites');
     } catch (e) {
       console.error(e);
       toggleFavoriteDirectly(newFavoriteState);
