@@ -25,6 +25,9 @@
     letter-spacing: 0;
     margin: 10px;
     padding: 0 10px;
+    &:focus {
+      outline: rgb(255, 170, 0) auto 5px;
+    }
   }
 }
 

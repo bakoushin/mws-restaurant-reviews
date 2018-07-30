@@ -13,7 +13,7 @@ var map;
 
 const favoriteButton = document.querySelector('.restaurant-favorite-button');
 const favoriteIcon = document.querySelector('.restaurant-favorite-icon');
-const reviewForm = document.querySelector('.review-form');
+const reviewForm = document.querySelector('#review-form > form');
 const submitReviewButton = document.querySelector('.submit-review-button');
 
 /**
