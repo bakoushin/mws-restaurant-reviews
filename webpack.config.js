@@ -65,6 +65,15 @@ module.exports = (env, argv) => {
               }
             }
           ]
+        },
+        {
+          test: /\.svg/,
+          use: {
+            loader: 'svg-url-loader',
+            options: {
+              iesafe: true
+            }
+          }
         }
       ]
     },
