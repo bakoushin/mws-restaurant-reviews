@@ -4,6 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const ServiceWorkerWebpackPlugin = require('serviceworker-webpack-plugin');
 const HtmlWebpackInlineSourcePlugin = require('html-webpack-inline-source-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, argv) => {
   const devMode = argv.mode === 'development';
@@ -101,7 +102,12 @@ module.exports = (env, argv) => {
       //new HtmlWebpackInlineSourcePlugin()
       new ServiceWorkerWebpackPlugin({
         entry: path.join(__dirname, 'src/js/sw.js')
-      })
+      }),
+      new CopyWebpackPlugin([
+        { from: 'assets/placeholder-image', to: 'assets/' },
+        { from: 'icons', to: 'icons/' },
+        { from: path.join(__dirname, 'img'), to: 'img/' }
+      ])
     ]
   };
 };
