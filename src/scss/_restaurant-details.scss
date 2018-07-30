@@ -9,7 +9,7 @@
   }
 }
 
-@media (min-width: 1100px) {
+@include desktop {
   .inside .map {
     position: fixed;
     top: 80px;
