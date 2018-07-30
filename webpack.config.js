@@ -90,17 +90,17 @@ module.exports = (env, argv) => {
         filename: 'index.html',
         template: './index.html',
         chunks: ['main'],
-        minify: devMode ? false : htmlMinifierOptions
-        //inlineSource: ".css$"
+        minify: devMode ? false : htmlMinifierOptions,
+        inlineSource: '.(js|css)$'
       }),
       new HtmlWebpackPlugin({
         filename: 'restaurant.html',
         template: './restaurant.html',
         chunks: ['restaurant_info'],
-        minify: devMode ? false : htmlMinifierOptions
-        // inlineSource: '.(js|css)$'
+        minify: devMode ? false : htmlMinifierOptions,
+        inlineSource: '.(js|css)$'
       }),
-      //new HtmlWebpackInlineSourcePlugin()
+      new HtmlWebpackInlineSourcePlugin(),
       new ServiceWorkerWebpackPlugin({
         entry: path.join(__dirname, 'src/js/sw.js')
       }),
