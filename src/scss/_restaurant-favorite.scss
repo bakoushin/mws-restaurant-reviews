@@ -12,6 +12,7 @@
   width: 32px;
   height: 32px;
   display: block;
+  will-change: transform;
   transition: transform 0.45s;
   transform-style: preserve-3d;
   backface-visibility: hidden;

@@ -1,9 +1,12 @@
-.inside #maincontent {
-  margin-top: 0;
-}
+.inside {
+  & #maincontent {
+    margin-top: 0;
+  }
 
-.inside .map {
-  height: 500px;
+  & .map,
+  & .map__google-map {
+    height: 500px;
+  }
 }
 
 @media (min-width: 1100px) {
@@ -13,6 +16,9 @@
     right: 0;
     height: 100%;
     width: 50%;
+  }
+  .inside .map__google-map {
+    height: 100%;
   }
   #breadcrumb,
   #restaurant-container,
