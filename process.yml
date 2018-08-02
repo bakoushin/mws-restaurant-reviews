@@ -1,0 +1,9 @@
+apps:
+  - script : 'node'
+    args   : 'server'
+    cwd    : '/usr/src/backend'
+    name   : 'backend'
+  - script : 'node'
+    args   : 'server'
+    cwd    : '/usr/src/frontend'
+    name   : 'frontend'
