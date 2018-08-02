@@ -8,8 +8,7 @@ export default class DBHelper {
    * Database URL.
    */
   static get DATABASE_URL() {
-    const port = 1337;
-    return `http://localhost:${port}`;
+    return `https://mws-restaurant-stage-3-hvpjruuswr.now.sh`;
   }
 
   /**
