@@ -14,7 +14,7 @@ WORKDIR /usr/src/frontend
 
 COPY img .
 COPY src .
-COPY package* .
+COPY package* ./
 COPY postcss.config.js .
 COPY webpack.config.js .
 COPY server.js .
